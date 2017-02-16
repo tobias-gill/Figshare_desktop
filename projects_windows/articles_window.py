@@ -9,8 +9,8 @@ from PyQt5.QtGui import (QIcon)
 from PyQt5.QtCore import (Qt, QPoint)
 
 
-from figshare_desktop.figshare_articles.determine_type import gen_article
-from figshare_desktop.article_edit_window.article_edit_window import ArticleEditWindow
+from Figshare_desktop.figshare_articles.determine_type import gen_article
+from Figshare_desktop.article_edit_window.article_edit_window import ArticleEditWindow
 
 from figshare_interface.http_requests.figshare_requests import download_file
 from figshare_interface import (Projects)

@@ -3,7 +3,7 @@
 """
 import os
 from PyQt5.QtWidgets import (QWidget, QSizePolicy, QPushButton, QLabel, QHBoxLayout, QVBoxLayout,
-                             QGridLayout, QTextEdit, QLineEdit, QScrollArea, QButtonGroup)
+                             QGridLayout, QTextEdit, QLineEdit, QScrollArea, QButtonGroup, QComboBox)
 from PyQt5.QtGui import (QIcon, QFont)
 from PyQt5.QtCore import (Qt)
 
@@ -48,7 +48,7 @@ class ArticleEditWindow(QWidget):
 
         hbox.addLayout(self.confirmation_layout())
         self.basic_info_widget = self.basic_info_layout()
-        self.decide_basic_layout(self.articles_ids)
+        # self.decide_basic_layout(self.articles_ids)
         hbox.addWidget(self.basic_info_widget)
 
         self.file_specific_layout = self.decide_file_layout(self.articles_ids)
@@ -102,155 +102,36 @@ class ArticleEditWindow(QWidget):
         :return:
         """
 
-        # Size Policies
-        # - Expand Vertically and Horizontally
-        fullSizePolicy = QSizePolicy()
-        fullSizePolicy.setVerticalPolicy(QSizePolicy.Expanding)
-        fullSizePolicy.setHorizontalPolicy(QSizePolicy.Expanding)
-        # - Expand Vertically
-        vertSizePolicy = QSizePolicy()
-        vertSizePolicy.setVerticalPolicy(QSizePolicy.Expanding)
-        vertSizePolicy.setHorizontalPolicy(QSizePolicy.Preferred)
-        # - Expand Horizontally
-        horSizePolicy = QSizePolicy()
-        horSizePolicy.setVerticalPolicy(QSizePolicy.Preferred)
-        horSizePolicy.setHorizontalPolicy(QSizePolicy.Expanding)
-
-        window_size = self.geometry()
-
-        # Grid Layout
+        # Layout
         basic_info_widget = QWidget()
         vbox = QVBoxLayout(basic_info_widget)
 
-        # Fonts
-        # - Label Font
-        s = window_size.height() / 20
-        max_s = 14
-        min_s = 10
-        if s < min_s:
-            s = min_s
-        elif max_s < s:
-            s = max_s
-        lbl_font = QFont('SansSerif', s)
-        lbl_font.setBold(True)
+        # Title
+        self.add_lineedit(vbox, 'title', '')
 
-        # - Edit Font
-        s = window_size.height() / 25
-        max_s = 12
-        min_s = 7
-        if s < min_s:
-            s = min_s
-        elif max_s < s:
-            s = max_s
-        edit_font = QFont('SansSerif', s)
+        # Description
+        self.add_textedit(vbox, 'description', '')
 
-        # Title Label
-        lbl_title = QLabel('title')
-        lbl_title.setFont(lbl_font)
-        lbl_title.setSizePolicy(horSizePolicy)
-        vbox.addWidget(lbl_title)
+        # Tags
+        self.add_buttonlist(vbox, 'tags', [''])
 
-        # Title Edit
-        edit_title = QLineEdit()
-        edit_title.setFont(edit_font)
-        edit_title.setSizePolicy(horSizePolicy)
-        vbox.addWidget(edit_title)
+        # Categories
+        self.add_buttonlist(vbox, 'categories', [''])
 
-        # Description Label
-        lbl_description = QLabel('description')
-        lbl_description.setFont(lbl_font)
-        lbl_description.setSizePolicy(horSizePolicy)
-        vbox.addWidget(lbl_description)
+        # References
+        self.add_buttonlist(vbox, 'references', [''])
 
-        # Description Edit
-        edit_description = QTextEdit()
-        edit_description.setFont(edit_font)
-        edit_description.setSizePolicy(horSizePolicy)
-        vbox.addWidget(edit_description)
+        # Authors
+        self.add_buttonlist(vbox, 'authors', [''])
 
-        # Tags Label
-        lbl_tags = QLabel('tags')
-        lbl_tags.setFont(lbl_font)
-        lbl_tags.setSizePolicy(horSizePolicy)
-        vbox.addWidget(lbl_tags)
-
-        # Tags Edit
-        edit_tags = QLineEdit()
-        edit_tags.setFont(edit_font)
-        edit_tags.setSizePolicy(horSizePolicy)
-        vbox.addWidget(edit_tags)
-
-        # Cateories Label
-        lbl_categories = QLabel('categories')
-        lbl_categories.setFont(lbl_font)
-        lbl_categories.setSizePolicy(horSizePolicy)
-        vbox.addWidget(lbl_categories)
-
-        # Categories Edit
-        edit_categories = QLineEdit()
-        edit_categories.setFont(edit_font)
-        edit_categories.setSizePolicy(horSizePolicy)
-        vbox.addWidget(edit_categories)
-
-        # References Label
-        lbl_references = QLabel('references')
-        lbl_references.setFont(lbl_font)
-        lbl_references.setSizePolicy(horSizePolicy)
-        vbox.addWidget(lbl_references)
-
-        # References Edit
-        edit_references = QLineEdit()
-        edit_references.setFont(edit_font)
-        edit_references.setSizePolicy(horSizePolicy)
-        vbox.addWidget(edit_references)
-
-        # Authors Label
-        lbl_authors = QLabel('authors')
-        lbl_authors.setFont(lbl_font)
-        lbl_authors.setSizePolicy(horSizePolicy)
-        vbox.addWidget(lbl_authors)
-
-        # Authors Edit
-        edit_authors = QLineEdit()
-        edit_authors.setFont(edit_font)
-        edit_authors.setSizePolicy(horSizePolicy)
-        vbox.addWidget(edit_authors)
-
-        # Defined Type Label
-        lbl_definedtype = QLabel('defined_type')
-        lbl_definedtype.setFont(lbl_font)
-        lbl_definedtype.setSizePolicy(horSizePolicy)
-        vbox.addWidget(lbl_definedtype)
-
-        # Defined Type Edit
-        edit_definedtype = QLineEdit()
-        edit_definedtype.setFont(edit_font)
-        edit_definedtype.setSizePolicy(horSizePolicy)
-        vbox.addWidget(edit_definedtype)
+        # Defined Type
+        self.add_dropdownlist(vbox, 'defined_type', [''])
 
         # Funding Label
-        lbl_funding = QLabel('funding')
-        lbl_funding.setFont(lbl_font)
-        lbl_funding.setSizePolicy(horSizePolicy)
-        vbox.addWidget(lbl_funding)
+        self.add_buttonlist(vbox, 'funding', [''])
 
-        # Funding Edit
-        edit_funding = QLineEdit()
-        edit_funding.setFont(edit_font)
-        edit_funding.setSizePolicy(horSizePolicy)
-        vbox.addWidget(edit_funding)
-
-        # License Label
-        lbl_license = QLabel('license')
-        lbl_license.setFont(lbl_font)
-        lbl_license.setSizePolicy(horSizePolicy)
-        vbox.addWidget(lbl_license)
-
-        # License Edit
-        edit_license = QLineEdit()
-        edit_license.setFont(edit_font)
-        edit_license.setSizePolicy(horSizePolicy)
-        vbox.addWidget(edit_license)
+        # License
+        self.add_dropdownlist(vbox, 'license', [''])
 
         scroll_area = QScrollArea()
         scroll_area.setWidget(basic_info_widget)
@@ -259,7 +140,7 @@ class ArticleEditWindow(QWidget):
         return scroll_area
 
     def decide_basic_layout(self, article_ids):
-
+        pass
         if len(article_ids) > 1:
             article = self.main_window.articles[int(article_ids[0])]
             basic_info_dict = article.figshare_metadata
@@ -505,8 +386,12 @@ class ArticleEditWindow(QWidget):
             else:
                 layout.addWidget(lbl, row, column)
                 layout.addWidget(edit, row + 1, column)
+                print('flooooooooooooooooof')
+        else:
+            layout.addWidget(lbl)
+            layout.addWidget(edit)
 
-    def add_textedit(self, layout, label, value, row=None, column = None, rowspan=None, columnspan=None):
+    def add_textedit(self, layout, label, value, row=None, column=None, rowspan=None, columnspan=None):
         """
         Use this to add a QLabel, QTextEdit pair from the given values to the provided layout. If the layout is a
         QGridLayout then the row and column values are required.
@@ -535,6 +420,9 @@ class ArticleEditWindow(QWidget):
             else:
                 layout.addWidget(lbl, row, column)
                 layout.addWidget(edit, row + 1, column)
+        else:
+            layout.addWidget(lbl)
+            layout.addWidget(edit)
 
     def add_buttonlist(self, layout, label, values, key=None, row=None, column = None, rowspan=None,
                        columnspan=None):
@@ -558,7 +446,7 @@ class ArticleEditWindow(QWidget):
         # Create layout for buttons.
         hbox = QHBoxLayout()
         # Define a size policy for the buttons
-        btn_sizePolicy = QSizePolicy
+        btn_sizePolicy = QSizePolicy()
         btn_sizePolicy.setHorizontalPolicy(QSizePolicy.Expanding)
         btn_sizePolicy.setVerticalPolicy(QSizePolicy.Preferred)
         # Create a QButtonGroup
@@ -619,6 +507,9 @@ class ArticleEditWindow(QWidget):
             else:
                 layout.addWidget(lbl, row, column)
                 layout.addLayout(hbox, row + 1, column)
+        else:
+            layout.addWidget(lbl)
+            layout.addLayout(hbox)
 
     def on_delete_button_from_list(self, button_group, layout):
         """
@@ -631,10 +522,11 @@ class ArticleEditWindow(QWidget):
 
         button_group.removeButton(btn_to_delete)
         layout.removeWidget(btn_to_delete)
+        btn_to_delete.deleteLater()
 
     def on_add_button_to_list(self, button_group, layout, lineedit):
         """
-        Adds a buttn to a specified button group and layout.
+        Adds a button to a specified button group and layout.
         :param button_group: QButtonGroup button is to be added to.
         :param layout: QLayout button is to be added to.
         :param lineedit: QLineEdit containing the new button string.
@@ -645,6 +537,8 @@ class ArticleEditWindow(QWidget):
         new_btn = QPushButton(new_btn_str)
         new_btn.setFont(self.edit_font)
         new_btn.setFlat(True)
+        new_btn.setCheckable(True)
+        new_btn.toggle()
         size_policy = QSizePolicy()
         size_policy.setHorizontalPolicy(QSizePolicy.Expanding)
         size_policy.setVerticalPolicy(QSizePolicy.Preferred)
@@ -652,4 +546,41 @@ class ArticleEditWindow(QWidget):
 
         button_group.addButton(new_btn)
         inset_pos = layout.count() - 2
-        layout.insertWidget(new_btn, inset_pos)
+        layout.insertWidget(inset_pos, new_btn)
+
+    def add_dropdownlist(self, layout, label, values, row=None, column=None, rowspan=None, columnspan=None):
+        """
+        Adds a drop down list to the given layout.
+        :param layout: QLayout to add widget to.
+        :param label: String containing the list title.
+        :param values: List containing dropdown items.
+        Optional
+        :param row: int. If layout is a QGridLayout then the row must be given.
+        :param column: int. If the layout is a QGridLayout then the column must be given.
+        :param rowspan: int. For how many rows widget will span in QGridLayout.
+        :param columnspan: int. For how many columns widget will span in QGridLayout.
+        :return:
+        """
+        size_policy = QSizePolicy()
+        size_policy.setHorizontalPolicy(QSizePolicy.Expanding)
+        size_policy.setVerticalPolicy(QSizePolicy.Preferred)
+
+        lbl = QLabel(label)
+        lbl.setFont(self.label_font)
+        lbl.setSizePolicy(size_policy)
+
+        drop_menu = QComboBox()
+        drop_menu.addItems(values)
+        drop_menu.setFont(self.edit_font)
+        drop_menu.setSizePolicy(size_policy)
+
+        if type(layout) is QGridLayout:
+            if rowspan is not None and columnspan is not None:
+                layout.addWidget(lbl, row, column, rowspan, columnspan)
+                layout.addWidget(drop_menu, row + rowspan + 1, column, rowspan, columnspan)
+            else:
+                layout.addWidget(lbl, row, column)
+                layout.addWidget(drop_menu, row + 1, column)
+        else:
+            layout.addWidget(lbl)
+            layout.addWidget(drop_menu)

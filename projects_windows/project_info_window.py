@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QMessageBo
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QPoint)
 
-from figshare_desktop.projects_windows.articles_window import ProjectsArticlesWindow
+from Figshare_desktop.projects_windows.articles_window import ProjectsArticlesWindow
 
 from figshare_interface import (Groups, Projects)
 

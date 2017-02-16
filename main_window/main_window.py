@@ -8,9 +8,9 @@ from PyQt5.QtWidgets import (QWidget, QPushButton, QToolTip, QMessageBox, QMainW
 from PyQt5.QtGui import (QIcon, QFont, QKeySequence)
 from PyQt5.QtCore import (Qt)
 
-from figshare_desktop.projects_windows.projects_window import ProjectsWindow
-from figshare_desktop.data_window.data_window import DataWindow
-from figshare_desktop.selection_window.selection_window import SelectionWindow
+from Figshare_desktop.projects_windows.projects_window import ProjectsWindow
+from Figshare_desktop.data_window.data_window import DataWindow
+from Figshare_desktop.selection_window.selection_window import SelectionWindow
 
 __author__ = "Tobias Gill"
 __credits__ = ["Tobias Gill", "Adrian-Tudor Panescu", "Miriam Keshani"]
