@@ -63,10 +63,12 @@ class TopoArticle(Article):
         stm_topo_info = self.recreate_custom_fields(basic_info['custom_fields'])
         self.gen_figshare_metadata(basic_info)
         self.gen_stm_topo_metadata(stm_topo_info)
+        self.check_basic()
 
     def update_info(self, input_dict):
         self.gen_figshare_metadata(input_dict)
         self.gen_stm_topo_metadata(input_dict)
+        self.check_basic()
 
     def input_dicts(self):
 

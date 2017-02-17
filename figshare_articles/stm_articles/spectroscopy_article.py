@@ -67,10 +67,12 @@ class SpecArticle(Article):
         stm_top_info = self.recreate_custom_fields(basic_info['custom_fields'])
         self.gen_figshare_metadata(basic_info)
         self.gen_stm_spec_metadata(stm_top_info)
+        self.check_basic()
 
     def update_info(self, input_dict):
         self.gen_figshare_metadata(input_dict)
-        self.gen_spec_topo_metadata(input_dict)
+        self.gen_stm_spec_metadata(input_dict)
+        self.check_basic()
 
     def input_dicts(self):
 

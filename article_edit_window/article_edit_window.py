@@ -2,7 +2,7 @@
 
 """
 import os
-from PyQt5.QtWidgets import (QWidget, QSizePolicy, QPushButton, QLabel, QHBoxLayout, QVBoxLayout,
+from PyQt5.QtWidgets import (QWidget, QSizePolicy, QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QTabWidget,
                              QGridLayout, QTextEdit, QLineEdit, QScrollArea, QButtonGroup, QComboBox)
 from PyQt5.QtGui import (QIcon, QFont)
 from PyQt5.QtCore import (Qt)
@@ -20,7 +20,8 @@ __status__ = "Development"
 
 class ArticleEditWindow(QWidget):
 
-    def __init__(self, app, OAuth_token, main_window, projects_info_window_loc, article_ids, project_id=None, collection_id=None):
+    def __init__(self, app, OAuth_token, main_window, projects_info_window_loc, article_ids, project_id=None,
+                 collection_id=None):
         super().__init__()
 
         self.app = app
@@ -43,18 +44,23 @@ class ArticleEditWindow(QWidget):
 
         self.label_font = self.article_label_font()
         self.edit_font = self.article_edit_font()
-
+        self.button_groups = {}
         hbox = QHBoxLayout()
+        self.tab_layout = QTabWidget()
 
         hbox.addLayout(self.confirmation_layout())
+
         self.basic_info_widget = self.basic_info_layout()
-        # self.decide_basic_layout(self.articles_ids)
-        hbox.addWidget(self.basic_info_widget)
+
+        self.decide_basic_layout(self.articles_ids)
+
+        self.tab_layout.addTab(self.basic_info_widget, 'Figshare Metadata')
 
         self.file_specific_layout = self.decide_file_layout(self.articles_ids)
         if self.file_specific_layout is not None:
-            hbox.addWidget(self.file_specific_layout)
+            self.tab_layout.addTab(self.file_specific_layout, 'File Metadata')
 
+        hbox.addWidget(self.tab_layout)
         self.setLayout(hbox)
 
     def formatWindow(self):
@@ -128,7 +134,7 @@ class ArticleEditWindow(QWidget):
         self.add_dropdownlist(vbox, 'defined_type', [''])
 
         # Funding Label
-        self.add_buttonlist(vbox, 'funding', [''])
+        self.add_textedit(vbox, 'funding', '')
 
         # License
         self.add_dropdownlist(vbox, 'license', [''])
@@ -137,38 +143,88 @@ class ArticleEditWindow(QWidget):
         scroll_area.setWidget(basic_info_widget)
         scroll_area.setWidgetResizable(True)
 
+
+
         return scroll_area
 
     def decide_basic_layout(self, article_ids):
-        pass
-        if len(article_ids) > 1:
-            article = self.main_window.articles[int(article_ids[0])]
-            basic_info_dict = article.figshare_metadata
 
-            basic_info_layout = self.basic_info_widget.widget().layout()
+        article = self.main_window.articles[int(article_ids[0])]
+        basic_info_dict = article.figshare_metadata
+        basic_info_layout = self.basic_info_widget.widget().layout()
+        for widget_pos in range(0, basic_info_layout.count() - 1, 2):
+            lbl = basic_info_layout.itemAt(widget_pos).widget().text()
+            edit_widget = basic_info_layout.itemAt(widget_pos + 1).widget()
 
-            for widget_pos in range(0, basic_info_layout.count() - 1, 2):
-                lbl = basic_info_layout.itemAt(widget_pos).widget().text()
-                basic_info_layout.itemAt(widget_pos + 1).widget().setText(basic_info_dict[lbl])
-                if lbl == 'title':
-                    basic_info_layout.itemAt(widget_pos + 1).widget().setText('Multiple Files')
-                    basic_info_layout.itemAt(widget_pos + 1).widget().setReadOnly(True)
-        else:
-            article = self.main_window.articles[int(article_ids[0])]
-            basic_info_dict = article.figshare_metadata
+            if edit_widget is None:
+                edit_widget = basic_info_layout.itemAt(widget_pos + 1).layout()
 
-            basic_info_layout = self.basic_info_widget.widget().layout()
+            edit_widget_type = type(edit_widget)
+            if edit_widget_type is QLineEdit:
+                if len(article_ids) > 1:
+                    if lbl == 'title':
+                        edit_widget.setText('Multiple Files')
+                        edit_widget.setReadOnly(True)
+                else:
+                    edit_widget.setText(basic_info_dict[lbl])
 
-            for widget_pos in range(0, basic_info_layout.count() - 1, 2):
-                lbl = basic_info_layout.itemAt(widget_pos).widget().text()
-                # The string call in this function produces the nested strings of lists I think.
-                value = basic_info_dict[lbl]
-                setText_str = ''
-                if type(value) is list:
-                    for item in value:
-                        setText_str
+            elif edit_widget_type is QTextEdit:
+                edit_widget.setText(basic_info_dict[lbl])
 
-                basic_info_layout.itemAt(widget_pos + 1).widget().setText(str(basic_info_dict[lbl]))
+            elif edit_widget_type is QHBoxLayout:  # This is a button list
+                info = basic_info_dict[lbl]
+                button_group = self.button_groups[lbl]
+                info_strings = []
+                info_type = type(info)
+
+                if info_type is list and info != []:
+                    list_type = type(info[0])
+                    if list_type is dict:
+                        for item in info:
+                            for value in item.values():
+                                info_strings.append(str(value))
+                    elif list_type is str:
+                        info_strings = info
+                    elif list_type is int:
+                        for item in info:
+                            info_strings.append(str(item))
+                    else:
+                        pass
+                elif info_type is str:
+                    info_strings = [info]
+                for item in info_strings:
+                    self.on_add_button_to_list(button_group, edit_widget, None, item)
+
+            elif edit_widget_type is QComboBox:
+                edit_widget.clear()
+
+                if lbl == 'defined_type':
+                    info_string = basic_info_dict[lbl]
+                    type_dict = {1: 'figure', 2: 'media', 3: 'dataset', 4: 'fileset', 5: 'poster', 6: 'paper',
+                                 7: 'presentation', 8: 'thesis', 9: 'code', 10: 'metadata'}
+                    for info_pos in range(len(type_dict)):
+                        item = type_dict[info_pos + 1]
+                        edit_widget.addItem(item)
+
+                    if type(info_string) is int:
+                        edit_widget.setCurrentIndex(info_string)
+                    elif type(info_string) is str:
+                        for key, value in type_dict.items():
+                            if value == info_string:
+                                edit_widget.setCurrentIndex(key)
+                                break
+
+                elif lbl == 'license':
+                    info_int = basic_info_dict[lbl]
+                    print('license:', info_int, type(info_int))
+                    type_list = [None, 'CC BY', 'CC-0', 'MIT', 'GPL', 'GPL-2.0', 'GPL-3.0', 'Apache']
+
+                    for item in type_list:
+                        edit_widget.addItem(item)
+                    if info_int is None:
+                        edit_widget.setCurrentIndex(0)
+                    else:
+                        edit_widget.setCurrentIndex(info_int)
 
 
     def file_specific_info_layout(self, article_dicts):
@@ -273,40 +329,66 @@ class ArticleEditWindow(QWidget):
 
     def on_save_pressed(self):
 
-        basic_info_dict = {}
-        basic_info_layout = self.basic_info_widget.widget().layout()
+        tab_layout = self.tab_layout
+        open_tab_index = tab_layout.currentIndex()
 
-        for widget_pos in range(0, basic_info_layout.count() - 1, 2):
-            lbl = basic_info_layout.itemAt(widget_pos).widget().text()
-            widget = basic_info_layout.itemAt(widget_pos + 1).widget()
-            if type(widget) is QLineEdit:
-                value = widget.text()
-            elif type(widget) is QTextEdit:
-                value = widget.toPlainText()
-            if value is not []:
-                basic_info_dict[lbl] = value
-            else:
-                basic_info_dict[lbl] = None
+        if open_tab_index == 0:
+            basic_info_dict = {}
+            basic_info_layout = self.basic_info_widget.widget().layout()
 
-        update_dict = {**basic_info_dict}
+            for widget_pos in range(0, basic_info_layout.count() - 1, 2):
+                lbl = basic_info_layout.itemAt(widget_pos).widget().text()
+                widget = basic_info_layout.itemAt(widget_pos + 1).widget()
+                if widget is None:
+                    widget = basic_info_layout.itemAt(widget_pos + 1).layout()
 
-        if self.file_specific_layout is not None:
-            file_specific_dict = {}
-            file_specific_layout = self.file_specific_layout.widget().layout()
-
-            for widget_pos in range(0, file_specific_layout.count() - 1, 2):
-                lbl = file_specific_layout.itemAt(widget_pos).widget().text()
-                widget = file_specific_layout.itemAt(widget_pos + 1).widget()
-                if type(widget) is QLineEdit:
-                    value = widget.text()
-                elif type(widget) is QTextEdit:
+                widget_type = type(widget)
+                if widget_type is QLineEdit:
+                    if len(self.articles_ids) > 1:
+                        if lbl == 'title':
+                            value = None
+                        else:
+                            value = widget.text()
+                    else:
+                        value = widget.text()
+                elif widget_type is QTextEdit:
                     value = widget.toPlainText()
+                elif widget_type is QHBoxLayout:
+                    value = []
+                    for btn_pos in range(0, widget.count() - 2, 1):
+                        btn = widget.itemAt(btn_pos).widget()
+                        value.append(btn.text())
+                elif widget_type is QComboBox:
+                    value = widget.currentIndex()
                 if value is not []:
-                    file_specific_dict[lbl] = value
+                    basic_info_dict[lbl] = value
                 else:
-                    file_specific_dict[lbl] = None
+                    basic_info_dict[lbl] = None
 
-            update_dict = {**basic_info_dict, **file_specific_dict}
+            update_dict = {**basic_info_dict}
+
+        elif open_tab_index == 1:
+            if self.file_specific_layout is not None:
+                file_specific_dict = {}
+                file_specific_layout = self.file_specific_layout.widget().layout()
+
+                for widget_pos in range(0, file_specific_layout.count() - 1, 2):
+                    lbl = file_specific_layout.itemAt(widget_pos).widget().text()
+                    widget = file_specific_layout.itemAt(widget_pos + 1).widget()
+
+                    widget_type = type(widget)
+                    if widget_type is QLineEdit:
+                        value = widget.text()
+
+                    elif widget_type is QTextEdit:
+                        value = widget.toPlainText()
+
+                    if value is not [] and value is not '':
+                        file_specific_dict[lbl] = value
+                    else:
+                        file_specific_dict[lbl] = None
+
+                update_dict = {**file_specific_dict}
 
         if len(self.articles_ids) > 1:
             articles = self.main_window.articles
@@ -319,7 +401,6 @@ class ArticleEditWindow(QWidget):
         else:
             article = self.main_window.articles[int(self.articles_ids[0])]
             article.update_info(update_dict)
-
             upload_dict = article.get_upload_dict()
             Projects.update_article(self.token, int(self.articles_ids[0]), upload_dict)
 
@@ -386,7 +467,7 @@ class ArticleEditWindow(QWidget):
             else:
                 layout.addWidget(lbl, row, column)
                 layout.addWidget(edit, row + 1, column)
-                print('flooooooooooooooooof')
+
         else:
             layout.addWidget(lbl)
             layout.addWidget(edit)
@@ -451,6 +532,7 @@ class ArticleEditWindow(QWidget):
         btn_sizePolicy.setVerticalPolicy(QSizePolicy.Preferred)
         # Create a QButtonGroup
         btn_group = QButtonGroup()
+        self.button_groups[label] = btn_group
         btn_group_id = 1
         # Create buttons and add to group and layout.
         list_element_type = type(values[0])
@@ -469,15 +551,18 @@ class ArticleEditWindow(QWidget):
                 btn_str = str(element)
                 btn = QPushButton(btn_str)
                 btn.setFont(self.edit_font)
-                btn.setFlat(True)
                 btn.setSizePolicy(btn_sizePolicy)
                 btn_group.addButton(btn, btn_group_id)
                 hbox.addWidget(btn)
                 btn_group_id += 1
 
-        new_btn = QLineEdit()
+        txt_sizePolicy = QSizePolicy()
+        txt_sizePolicy.setVerticalPolicy(QSizePolicy.Preferred)
+        txt_sizePolicy.setHorizontalPolicy(QSizePolicy.Preferred)
+
+        new_btn = QTextEdit()
         new_btn.setFont(self.edit_font)
-        new_btn.setSizePolicy(btn_sizePolicy)
+        new_btn.setSizePolicy(txt_sizePolicy)
         hbox.addWidget(new_btn)
 
         options_layout = QVBoxLayout()
@@ -524,7 +609,7 @@ class ArticleEditWindow(QWidget):
         layout.removeWidget(btn_to_delete)
         btn_to_delete.deleteLater()
 
-    def on_add_button_to_list(self, button_group, layout, lineedit):
+    def on_add_button_to_list(self, button_group, layout, textedit, overide_str=None):
         """
         Adds a button to a specified button group and layout.
         :param button_group: QButtonGroup button is to be added to.
@@ -532,8 +617,11 @@ class ArticleEditWindow(QWidget):
         :param lineedit: QLineEdit containing the new button string.
         :return:
         """
-        new_btn_str = lineedit.text()
-        lineedit.clear()
+        if overide_str is not None:
+            new_btn_str = overide_str
+        else:
+            new_btn_str = textedit.toPlainText()
+            textedit.clear()
         new_btn = QPushButton(new_btn_str)
         new_btn.setFont(self.edit_font)
         new_btn.setFlat(True)
