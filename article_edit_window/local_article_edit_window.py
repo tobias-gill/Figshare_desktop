@@ -65,6 +65,36 @@ class LocalArticleEditWindow(ArticleEditWindow):
         hbox.addWidget(self.tab_layout)
         self.setLayout(hbox)
 
+    def confirmation_layout(self):
+        sizepolicy = QSizePolicy()
+        sizepolicy.setVerticalPolicy(QSizePolicy.Expanding)
+        sizepolicy.setVerticalPolicy(QSizePolicy.Preferred)
+
+        btn_exit = QPushButton()
+        btn_exit.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/exit.png')))
+        btn_exit.setSizePolicy(sizepolicy)
+        btn_exit.pressed.connect(self.on_exit_pressed)
+
+        btn_save = QPushButton()
+        btn_save.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/Insert Row Below-48.png')))
+        btn_save.setSizePolicy(sizepolicy)
+        btn_save.pressed.connect(self.on_save_pressed)
+        self.btn_save = btn_save
+        if not self.main_window.centralWidget().selection_open:
+            self.btn_save.setEnabled(False)
+
+        vbox = QVBoxLayout()
+
+        vbox.addWidget(btn_exit)
+        vbox.addWidget(self.btn_save)
+
+        return vbox
+
+    def activate_save_btn(self):
+        self.btn_save.setEnabled(True)
+    def deactivate_save_btn(self):
+        self.btn_save.setEnabled(False)
+
     def on_exit_pressed(self):
         """
         Closes the window without saving any metadata.
@@ -77,79 +107,158 @@ class LocalArticleEditWindow(ArticleEditWindow):
 
     def on_save_pressed(self):
 
-        pass
+        tab_layout = self.tab_layout
+        open_tab_index = tab_layout.currentIndex()
 
-    def decide_basic_layout(self, local_article_ids):
-        """
-        From the selection decide how to present existing information in the metadata edit fields.
-        :param local_article_ids: List of int. Ids of local_articles.
-        :return:
-        """
+        if open_tab_index == 0:
+            basic_info_dict = {}
+            basic_info_layout = self.basic_info_widget.widget().layout()
 
-        # Define a local variable to the main window local_articles dictionary.
-        local_articles = self.main_window.local_articles
-        # Define a local variable to the basic info layout inside the Tab widget.
+            for widget_pos in range(0, basic_info_layout.count() - 1, 2):
+                lbl = basic_info_layout.itemAt(widget_pos).widget().text()
+                widget = basic_info_layout.itemAt(widget_pos + 1).widget()
+                if widget is None:
+                    widget = basic_info_layout.itemAt(widget_pos + 1).layout()
+
+                widget_type = type(widget)
+                if widget_type is QLineEdit:
+                    if len(self.local_article_ids) > 1:
+                        if lbl == 'title':
+                            value = None
+                        else:
+                            value = widget.text()
+                    else:
+                        value = widget.text()
+                elif widget_type is QTextEdit:
+                    value = widget.toPlainText()
+                elif widget_type is QHBoxLayout:
+                    value = []
+                    for btn_pos in range(0, widget.count() - 2, 1):
+                        btn = widget.itemAt(btn_pos).widget()
+                        value.append(btn.text())
+                elif widget_type is QComboBox:
+                    value = widget.currentIndex()
+                if value is not []:
+                    basic_info_dict[lbl] = value
+                else:
+                    basic_info_dict[lbl] = None
+
+            update_dict = {**basic_info_dict}
+        """
+        elif open_tab_index == 1:
+            if self.file_specific_layout is not None:
+                file_specific_dict = {}
+                file_specific_layout = self.file_specific_layout.widget().layout()
+
+                for widget_pos in range(0, file_specific_layout.count() - 1, 2):
+                    lbl = file_specific_layout.itemAt(widget_pos).widget().text()
+                    widget = file_specific_layout.itemAt(widget_pos + 1).widget()
+
+                    widget_type = type(widget)
+                    if widget_type is QLineEdit:
+                        value = widget.text()
+
+                    elif widget_type is QTextEdit:
+                        value = widget.toPlainText()
+
+                    if value is not [] and value is not '':
+                        file_specific_dict[lbl] = value
+                    else:
+                        file_specific_dict[lbl] = None
+
+                update_dict = {**file_specific_dict}
+        """
+        if len(self.local_article_ids) > 1:
+            local_articles = self.main_window.local_articles
+            for local_article_id in self.local_article_ids:
+                a_id = local_article_id
+                article = local_articles[a_id]
+                article.update_info(update_dict)
+        else:
+            a_id = self.local_article_ids[0]
+            article = self.main_window.local_articles[a_id]
+            article.update_info(update_dict)
+
+        selection_list = self.main_window.centralWidget().selection_window.selection_article_list
+
+        for local_article_id in self.local_article_ids:
+            selection_list.append(local_article_id)
+            # Update selection qtree
+
+    def decide_basic_layout(self, article_ids):
+
+        article = self.main_window.local_articles[article_ids[0]]
+        basic_info_dict = article.figshare_metadata
         basic_info_layout = self.basic_info_widget.widget().layout()
-        # Get the local_article_dictionary for the first file in the selection.
-        basic_info_dict = local_articles[local_article_ids[0]].figshare_metadata
-
-        # Iterate through all the Label-Widget pairs in the layout.
         for widget_pos in range(0, basic_info_layout.count() - 1, 2):
-            # Get the Label 'title' from the QLineEditWidgets
             lbl = basic_info_layout.itemAt(widget_pos).widget().text()
-            # Get the editable widget below the label.
             edit_widget = basic_info_layout.itemAt(widget_pos + 1).widget()
 
-            # If the editable widget is None. It is actually a QLayout object.
             if edit_widget is None:
-                # Get the layout object, but call t the edit_widget.
                 edit_widget = basic_info_layout.itemAt(widget_pos + 1).layout()
 
-            # Find out the type of the editable widget or layout.
             edit_widget_type = type(edit_widget)
-
-            # QLineEdit.
             if edit_widget_type is QLineEdit:
-                # For now we only know the title so ignore other labels.
-                if lbl == 'title':
-                    # If multiple files are selected we will auto-generate the article titles from their file names.
-                    if len(local_article_ids) > 1:
-                        edit_widget.setText('Titles will be set from file names')
+                if len(article_ids) > 1:
+                    if lbl == 'title':
+                        edit_widget.setText('Multiple Files')
                         edit_widget.setReadOnly(True)
+                else:
+                    edit_widget.setText(basic_info_dict[lbl])
 
-                    # If only a single file is selected initially fill the title from the file, but allow for edits.
+            elif edit_widget_type is QTextEdit:
+                edit_widget.setText(basic_info_dict[lbl])
+
+            elif edit_widget_type is QHBoxLayout:  # This is a button list
+                info = basic_info_dict[lbl]
+                button_group = self.button_groups[lbl]
+                info_strings = []
+                info_type = type(info)
+
+                if info_type is list and info != []:
+                    list_type = type(info[0])
+                    if list_type is dict:
+                        for item in info:
+                            for value in item.values():
+                                info_strings.append(str(value))
+                    elif list_type is str:
+                        info_strings = info
+                    elif list_type is int:
+                        for item in info:
+                            info_strings.append(str(item))
                     else:
-                        edit_widget.setText(basic_info_dict[lbl])
+                        pass
+                elif info_type is str:
+                    info_strings = [info]
+                for item in info_strings:
+                    self.on_add_button_to_list(button_group, edit_widget, None, item)
 
-            # QComboBox
             elif edit_widget_type is QComboBox:
-                # Remove all existing fields in the QComboBox. These will likely be blank anyway.
                 edit_widget.clear()
 
-                # DEFINED_TYPE
                 if lbl == 'defined_type':
-                    # There are a small set of allowed types. For now we will define them here.
-                    # SHOULD MAKE THIS A SINGLE VARIABLE IN A CONFIG FILE AT SOME POINT.
+                    info_string = basic_info_dict[lbl]
                     type_dict = {1: 'figure', 2: 'media', 3: 'dataset', 4: 'fileset', 5: 'poster', 6: 'paper',
                                  7: 'presentation', 8: 'thesis', 9: 'code', 10: 'metadata'}
-
-                    # Add all types to the QComboBox
                     for info_pos in range(len(type_dict)):
                         item = type_dict[info_pos + 1]
                         edit_widget.addItem(item)
 
-                    # For now we will set a default value of fileset.
-                    edit_widget.setCurrentIndex(3)
+                    if type(info_string) is int:
+                        edit_widget.setCurrentIndex(info_string)
+                    elif type(info_string) is str:
+                        for key, value in type_dict.items():
+                            if value == info_string:
+                                edit_widget.setCurrentIndex(key)
+                                break
 
-                # LICENSE
                 elif lbl == 'license':
-                    # There are a small set of allowed licenses. For now we will define them here.
-                    # SHOULD MAKE THIS A SINGLE VARIABLE IN A CONFIG FILE AT SOME POINT.
+                    info_int = basic_info_dict[lbl]
                     type_list = [None, 'CC BY', 'CC-0', 'MIT', 'GPL', 'GPL-2.0', 'GPL-3.0', 'Apache']
 
-                    # Add all types to the QComboBox.
-                    for item in range(len(type_list)):
+                    for item in type_list:
                         edit_widget.addItem(item)
-
-                    # Set default value as None for now
-                    edit_widget.setCurrentIndex(0)
+                    if info_int is None:
+                        edit_widget.setCurrentIndex(0)
+                    else:
+                        edit_widget.setCurrentIndex(info_int)

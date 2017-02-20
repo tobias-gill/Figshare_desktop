@@ -51,7 +51,7 @@ class SelectionWindow(QWidget):
         self.setLayout(self.vbox)
 
         self.activate_project_article_selection_btn()
-        self.activate_data_selection_btn()
+        self.activate_data_save_btn()
 
     def formatWindow(self):
 
@@ -161,7 +161,6 @@ class SelectionWindow(QWidget):
         self.selection_article_list = temp_list
         temp_list = []
 
-
         self.article_tree.clear()
         for item in self.selection_article_list:
             article = [str(item.data(column, 0)) for column in range(len(header_lst) + 1)]
@@ -236,12 +235,14 @@ class SelectionWindow(QWidget):
                     window = self.main_window.centralWidget().projects_window.projects_info_window
                     window.articles_window.btn_selection.setEnabled(False)
 
-    def activate_data_selection_btn(self):
+    def activate_data_save_btn(self):
         if self.main_window.centralWidget().data_open:
-                    window = self.main_window.centralWidget().data_window
-                    window.btn_selection.setEnabled(True)
+            if self.main_window.centralWidget().data_window.local_article_edit_window_open:
+                window = self.main_window.centralWidget().data_window.local_metadata_window
+                window.btn_save.setEnabled(True)
 
-    def deactivate_data_selection_btn(self):
+    def deactivate_data_save_btn(self):
         if self.main_window.centralWidget().data_open:
-                    window = self.main_window.centralWidget().data_window
-                    window.btn_selection.setEnabled(False)
+            if self.main_window.centralWidget().data_window.local_article_edit_window_open:
+                window = self.main_window.centralWidget().data_window.local_metadata_window
+                window.btn_save.setEnabled(False)

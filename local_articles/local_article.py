@@ -17,7 +17,7 @@ __status__ = "Development"
 
 class LocalArticle(Article):
 
-    def __init__(self, filename):
+    def __init__(self, OAuth_token, filename):
 
         # Define the local file path and file title.
         self.local_path = os.path.abspath(filename)
@@ -45,6 +45,9 @@ class LocalArticle(Article):
 
         # Initialize an empty object that will hold generated QTreeWidgetItem representations of the article.
         self.qtreeitem = None
+
+        # Save the OAuth token for later use
+        self.token = OAuth_token
 
     def fill_info(self):
         """

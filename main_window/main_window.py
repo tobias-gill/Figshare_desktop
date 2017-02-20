@@ -181,8 +181,8 @@ class Board(QWidget):
         if self.selection_open:
             self.selection_open = False
             self.selection_window.deactivate_project_article_selection_btn()
-            self.selection_window.deactivate_data_selection_btn()
-            self.selection_window.hide()
+            self.selection_window.deactivate_data_save_btn()
+            self.selection_window.close()
         else:
             self.selection_open = True
             self.selection_window = SelectionWindow(self.app, self.token, self.main_window)

@@ -213,6 +213,8 @@ class ArticleEditWindow(QWidget):
                             if value == info_string:
                                 edit_widget.setCurrentIndex(key)
                                 break
+                    elif info_string is None:
+                        edit_widget.setCurrentIndex(3)
 
                 elif lbl == 'license':
                     info_int = basic_info_dict[lbl]

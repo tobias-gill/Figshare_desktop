@@ -166,6 +166,10 @@ class DataWindow(QWidget):
         if self.local_article_edit_window_open:
             self.local_article_edit_window_open = False
             self.local_metadata_window.close()
+            # Clear local_articles dictionary and reset counter.
+            # Could add retention of metadata by introducing second dictionary that links titles to ids.
+            self.main_window.local_articles = {}
+            self.main_window.next_local_id = 0
         else:
             self.local_article_edit_window_open = True
             items = self.browser.selectedItems()
@@ -184,7 +188,7 @@ class DataWindow(QWidget):
                 articles_list = []
                 for article in items:
                     if article.data(type_element, 0) != 'File Folder':
-                        local_articles[next_local_id] = gen_local_article(article.data(filename_element, 0))
+                        local_articles[next_local_id] = gen_local_article(self.token, article.data(filename_element, 0))
                         articles_list.append(next_local_id)
                         next_local_id += 1
 

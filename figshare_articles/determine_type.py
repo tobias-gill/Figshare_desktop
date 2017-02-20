@@ -40,7 +40,7 @@ def gen_article(filename, OAuth_token, project_id, article_id):
         return Article(OAuth_token, project_id, article_id)
 
 
-def gen_local_article(filename):
+def gen_local_article(OAuth_token, filename):
     file_path, file_ext = splitext(filename)
 
     file_types = {}
@@ -48,4 +48,4 @@ def gen_local_article(filename):
     if file_ext in file_types:
         return file_types[file_ext]()
     else:
-        return LocalArticle(filename)
+        return LocalArticle(OAuth_token, filename)
