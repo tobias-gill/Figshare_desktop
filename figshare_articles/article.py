@@ -34,7 +34,9 @@ class Article(object):
                                   'size': None,
                                   'version': None,
                                   'created_date': None,
+                                  'modified_date': None,
                                   'published_date': None,
+                                  'up_to_date': None,
                                   'status': None,
                                   'group_id': None}
 
@@ -63,6 +65,12 @@ class Article(object):
             if key in self.figshare_metadata:
                 if input_dict[key] != 'None' and input_dict[key] is not None:
                     self.figshare_metadata[key] = input_dict[key]
+        if self.figshare_metadata['published_date'] is not None:
+            if self.figshare_metadata['modified_date'] is not None:
+                if self.figshare_metadata['published_date'] != self.figshare_metadata['modified_date']:
+                    self.figshare_metadata['up_to_date'] = False
+                else:
+                    self.figshare_metadata['up_to_date'] = True
 
     def input_dicts(self):
 
@@ -91,7 +99,10 @@ class Article(object):
         self.qtreeitem = QTreeWidgetItem()
         column = 0
         for key in tree_list:
-            self.qtreeitem.setData(column, 0, key)
+            if key is bool:
+                self.qtreeitem.setData(column, 0, str(key))
+            else:
+                self.qtreeitem.setData(column, 0, key)
             column += 1
 
     @staticmethod

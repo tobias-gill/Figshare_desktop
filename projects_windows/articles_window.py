@@ -155,12 +155,12 @@ class ProjectsArticlesWindow(QWidget):
     def article_list_layout(self):
 
         lst = QTreeWidget()
-        header_list = ["Title", "id", "Created", "Published", "Type", "Tags"]
+        header_list = ["Title", "id", "Created", "Status", "Type", "Tags"]
         header = QTreeWidgetItem(header_list)
         lst.setHeaderItem(header)
         lst.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
-        input_list = ['title', 'id', 'created_date', 'status', 'type', 'tags']
+        input_list = ['title', 'id', 'created_date', 'up_to_date', 'type', 'tags']
 
         for article in self.article_list:
             if article['id'] in self.main_window.articles:
