@@ -5,7 +5,8 @@ from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QAbstractItemView, QM
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QPoint)
 
-from Figshare_desktop.projects_windows.articles_window import ProjectsArticlesWindow
+from Figshare_desktop.figshare_articles.determine_type import gen_local_article
+from Figshare_desktop.article_edit_window.local_article_edit_window import LocalArticleEditWindow
 
 from figshare_interface import (Groups, Projects)
 
@@ -20,10 +21,11 @@ __status__ = "Development"
 
 class DataWindow(QWidget):
 
-    def __init__(self, app, main_window):
+    def __init__(self, app, OAuth_token, main_window):
         super().__init__()
 
         self.app = app
+        self.token = OAuth_token
         self.main_window = main_window
 
         self.initUI()
@@ -42,6 +44,8 @@ class DataWindow(QWidget):
 
         vbox.addLayout(hbox)
         self.setLayout(vbox)
+
+        self.local_article_edit_window_open = False
 
     def formatWindow(self):
         main_window_loc = self.main_window.geometry()
@@ -144,27 +148,46 @@ class DataWindow(QWidget):
         btn_selection = QPushButton()
         btn_selection.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/Insert Row Below-48.png')))
         btn_selection.setSizePolicy(sizepolicy)
-
-        btn_selection.pressed.connect(self.on_selection_pressed)
-        if not self.main_window.centralWidget().selection_open:
-            btn_selection.setEnabled(False)
+        btn_selection.setCheckable(True)
+        btn_selection.clicked[bool].connect(self.on_selection_pressed)
         self.btn_selection = btn_selection
         vbox = QVBoxLayout()
 
-        vbox.addWidget(btn_selection)
+        vbox.addWidget(self.btn_selection)
 
         return vbox
 
     def on_selection_pressed(self):
+        """
+        Actions to perform when the selected files are to be
+        :return:
+        """
 
-        items = self.article_tree.selectedItems()
-        if len(items) != 0:
-            self.selection_article_list = self.main_window.centralWidget().selection_window.selection_article_list
-            for item in items:
-                old_data = []
-                for column in range(item.columnCount() + 1):
-                    old_data.append(item.data(column, 0))
-                new_data = ['Local', item.data(0, 0), '', '', '', item.data()]
+        if self.local_article_edit_window_open:
+            self.local_article_edit_window_open = False
+            self.local_metadata_window.close()
+        else:
+            self.local_article_edit_window_open = True
+            items = self.browser.selectedItems()
 
-                self.selection_article_list.append(QTreeWidgetItem(new_data))
-            self.main_window.centralWidget().selection_window.update_article_list_layout()
+            header_item = self.browser.headerItem()
+            for column in range(header_item.columnCount()):
+                if header_item.data(column, 0) == 'Full Path':
+                    filename_element = column
+                elif header_item.data(column, 0) == 'Type':
+                    type_element = column
+
+            local_articles = self.main_window.local_articles
+            next_local_id = self.main_window.next_local_id
+
+            if items != []:
+                articles_list = []
+                for article in items:
+                    if article.data(type_element, 0) != 'File Folder':
+                        local_articles[next_local_id] = gen_local_article(article.data(filename_element, 0))
+                        articles_list.append(next_local_id)
+                        next_local_id += 1
+
+                self.local_metadata_window = LocalArticleEditWindow(self.app, self.token, self.main_window,
+                                                                    self.geometry(), articles_list)
+                self.local_metadata_window.show()

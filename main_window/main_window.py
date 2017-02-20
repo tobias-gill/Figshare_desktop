@@ -30,6 +30,8 @@ class MainWindow(QMainWindow):
         self.token = OAuth_token
 
         self.articles = {}
+        self.next_local_id = 0
+        self.local_articles = {}
 
         self.initUI()
 
@@ -172,7 +174,7 @@ class Board(QWidget):
             self.data_window.close()
         else:
             self.data_open = True
-            self.data_window = DataWindow(self.app, self.main_window)
+            self.data_window = DataWindow(self.app, self.token, self.main_window)
             self.data_window.show()
 
     def on_selection_btn_pressed(self):

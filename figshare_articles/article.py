@@ -2,7 +2,7 @@
 
 """
 
-from PyQt5.QtWidgets import  (QTreeWidgetItem)
+from PyQt5.QtWidgets import (QTreeWidgetItem)
 
 from figshare_interface.figshare_structures.projects import Projects
 from figshare_interface.http_requests.figshare_requests import issue_request

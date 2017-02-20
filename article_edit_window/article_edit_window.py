@@ -20,14 +20,14 @@ __status__ = "Development"
 
 class ArticleEditWindow(QWidget):
 
-    def __init__(self, app, OAuth_token, main_window, projects_info_window_loc, article_ids, project_id=None,
+    def __init__(self, app, OAuth_token, main_window, parent_window_loc, article_ids, project_id=None,
                  collection_id=None):
         super().__init__()
 
         self.app = app
         self.token = OAuth_token
         self.main_window = main_window
-        self.piw_loc = projects_info_window_loc
+        self.piw_loc = parent_window_loc
 
         self.articles_ids = article_ids
 
