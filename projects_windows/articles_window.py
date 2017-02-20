@@ -12,7 +12,7 @@ from PyQt5.QtCore import (Qt, QPoint)
 from Figshare_desktop.figshare_articles.determine_type import gen_article
 from Figshare_desktop.article_edit_window.article_edit_window import ArticleEditWindow
 
-from figshare_interface.http_requests.figshare_requests import download_file
+from figshare_interface.http_requests.figshare_requests import (download_file, issue_request)
 from figshare_interface import (Projects)
 
 __author__ = "Tobias Gill"
@@ -161,6 +161,7 @@ class ProjectsArticlesWindow(QWidget):
         lst.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         input_list = ['title', 'id', 'created_date', 'up_to_date', 'type', 'tags']
+        self.tree_input_list = input_list
 
         for article in self.article_list:
             if article['id'] in self.main_window.articles:
@@ -237,15 +238,23 @@ class ProjectsArticlesWindow(QWidget):
 
             articles = self.main_window.articles
 
+            tree_loc = 0
             for article_id in article_list:
                 a_id = int(article_id)
                 if articles[a_id].figshare_metadata['up_to_date'] is False:
                     Projects.publish_article(self.token, a_id)
                     title = articles[a_id].figshare_metadata['title']
                     project = articles[a_id].project_id
-                    articles[a_id] = gen_article(title, self.token, project, a_id)
-            for i in range(2):
-                self.main_window.centralWidget().projects_window.projects_info_window.on_show_articles_pressed()
+                    public_modified_date = issue_request('GET',
+                                                         'articles/{a_id}'.format(a_id=a_id),
+                                                         token=self.token)['modified_date']
+                    articles[a_id].figshare_desktop_metadata['public_modified_date'] = public_modified_date
+                    articles[a_id].figshare_metadata['up_to_date'] = True
+                articles[a_id].gen_qtree_item(self.tree_input_list, articles[a_id].input_dicts())
+                new_qtreeitem = articles[a_id].qtreeitem
+                self.article_tree.takeTopLevelItem(tree_loc)
+                self.article_tree.insertTopLevelItem(tree_loc, new_qtreeitem)
+                tree_loc += 1
 
     def on_download_pressed(self):
 
