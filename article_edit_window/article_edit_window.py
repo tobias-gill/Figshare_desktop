@@ -216,7 +216,6 @@ class ArticleEditWindow(QWidget):
 
                 elif lbl == 'license':
                     info_int = basic_info_dict[lbl]
-                    print('license:', info_int, type(info_int))
                     type_list = [None, 'CC BY', 'CC-0', 'MIT', 'GPL', 'GPL-2.0', 'GPL-3.0', 'Apache']
 
                     for item in type_list:
@@ -393,16 +392,21 @@ class ArticleEditWindow(QWidget):
         if len(self.articles_ids) > 1:
             articles = self.main_window.articles
             for article_id in self.articles_ids:
-                article = articles[int(article_id)]
+                a_id = int(article_id)
+                article = articles[a_id]
                 article.update_info(update_dict)
                 upload_dict = article.get_upload_dict()
-                Projects.update_article(self.token, int(article_id), upload_dict)
-
+                Projects.update_article(self.token, a_id, upload_dict)
+                private_modified_date = Projects(self.token).get_article(self.project_id, a_id)['modified_date']
+                article.figshare_desktop_metadata['modified_date'] = private_modified_date
         else:
-            article = self.main_window.articles[int(self.articles_ids[0])]
+            a_id = int(self.articles_ids[0])
+            article = self.main_window.articles[a_id]
             article.update_info(update_dict)
             upload_dict = article.get_upload_dict()
-            Projects.update_article(self.token, int(self.articles_ids[0]), upload_dict)
+            Projects.update_article(self.token, a_id, upload_dict)
+            private_modified_date = Projects(self.token).get_article(self.project_id, a_id)['modified_date']
+            article.figshare_desktop_metadata['modified_date'] = private_modified_date
 
     def article_label_font(self):
         """
