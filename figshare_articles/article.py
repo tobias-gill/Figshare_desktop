@@ -43,6 +43,7 @@ class Article(object):
         self.figshare_desktop_metadata = {
             'location': None,
             'thumb': None,
+            'public_modified_date': None
         }
 
         # Initialize an empty object that will hold generated QTreeWidgetItem representations of the article.
@@ -54,7 +55,6 @@ class Article(object):
 
         self.fill_info()
 
-
     def gen_figshare_metadata(self, input_dict):
         """
         Fill values in basic figshare_metadata dictionary from input dictionary.
@@ -65,12 +65,16 @@ class Article(object):
             if key in self.figshare_metadata:
                 if input_dict[key] != 'None' and input_dict[key] is not None:
                     self.figshare_metadata[key] = input_dict[key]
-        if self.figshare_metadata['published_date'] is not None:
-            if self.figshare_metadata['modified_date'] is not None:
-                if self.figshare_metadata['published_date'] != self.figshare_metadata['modified_date']:
-                    self.figshare_metadata['up_to_date'] = False
-                else:
-                    self.figshare_metadata['up_to_date'] = True
+        if self.figshare_metadata['status'] == 'public':
+            result = issue_request('GET', 'articles/{a_id}'.format(a_id=self.article_id), token=self.token)
+            date = result['modified_date']
+            self.figshare_desktop_metadata['public_modified_date'] = date
+            if self.figshare_metadata['modified_date'] != self.figshare_desktop_metadata['public_modified_date']:
+                self.figshare_metadata['up_to_date'] = False
+            else:
+                self.figshare_metadata['up_to_date'] = True
+        else:
+            self.figshare_metadata['up_to_date'] = 'Unpublished'
 
     def input_dicts(self):
 

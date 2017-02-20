@@ -191,6 +191,7 @@ class ProjectsArticlesWindow(QWidget):
         btn_upload = QPushButton()
         btn_upload.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/figshare_upload.png')))
         btn_upload.setSizePolicy(sizepolicy)
+        btn_upload.pressed.connect(self.on_upload_pressed)
 
         btn_download = QPushButton()
         btn_download.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/figshare_download.png')))
@@ -225,6 +226,24 @@ class ProjectsArticlesWindow(QWidget):
         hbox.addLayout(vbox)
 
         return hbox
+
+    def on_upload_pressed(self):
+
+        items = self.article_tree.selectedItems()
+        if len(items) != 0:
+            article_list = []
+            for item in items:
+                article_list.append(item.data(1, 0))
+
+            articles = self.main_window.articles
+
+            for article_id in article_list:
+                a_id = int(article_id)
+                if articles[a_id].figshare_metadata['up_to_date'] is False:
+                    Projects.publish_article(self.token, a_id)
+                    title = articles[a_id].figshare_metadata['title']
+                    project = articles[a_id].project_id
+                    articles[a_id] = gen_article(title, self.token, project, a_id)
 
     def on_download_pressed(self):
 
