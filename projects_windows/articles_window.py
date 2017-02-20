@@ -155,7 +155,7 @@ class ProjectsArticlesWindow(QWidget):
     def article_list_layout(self):
 
         lst = QTreeWidget()
-        header_list = ["Title", "id", "Created", "Status", "Type", "Tags"]
+        header_list = ["Title", "id", "Created", "Up-To-Date", "Type", "Tags"]
         header = QTreeWidgetItem(header_list)
         lst.setHeaderItem(header)
         lst.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -244,6 +244,8 @@ class ProjectsArticlesWindow(QWidget):
                     title = articles[a_id].figshare_metadata['title']
                     project = articles[a_id].project_id
                     articles[a_id] = gen_article(title, self.token, project, a_id)
+            for i in range(2):
+                self.main_window.centralWidget().projects_window.projects_info_window.on_show_articles_pressed()
 
     def on_download_pressed(self):
 

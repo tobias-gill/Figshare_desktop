@@ -398,7 +398,8 @@ class ArticleEditWindow(QWidget):
                 upload_dict = article.get_upload_dict()
                 Projects.update_article(self.token, a_id, upload_dict)
                 private_modified_date = Projects(self.token).get_article(self.project_id, a_id)['modified_date']
-                article.figshare_desktop_metadata['modified_date'] = private_modified_date
+                article.figshare_metadata['modified_date'] = private_modified_date
+                article.check_uptodate()
         else:
             a_id = int(self.articles_ids[0])
             article = self.main_window.articles[a_id]
@@ -406,7 +407,8 @@ class ArticleEditWindow(QWidget):
             upload_dict = article.get_upload_dict()
             Projects.update_article(self.token, a_id, upload_dict)
             private_modified_date = Projects(self.token).get_article(self.project_id, a_id)['modified_date']
-            article.figshare_desktop_metadata['modified_date'] = private_modified_date
+            article.figshare_metadata['modified_date'] = private_modified_date
+            article.check_uptodate()
 
     def article_label_font(self):
         """

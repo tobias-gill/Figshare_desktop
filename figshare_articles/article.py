@@ -69,6 +69,16 @@ class Article(object):
             result = issue_request('GET', 'articles/{a_id}'.format(a_id=self.article_id), token=self.token)
             date = result['modified_date']
             self.figshare_desktop_metadata['public_modified_date'] = date
+        self.check_uptodate()
+
+    def check_uptodate(self):
+        """
+        Checks to see if the private and public modified dates are equal and assigns the correct value to the
+        figshare_metadata['up_to_date'] field.
+        :return:
+        """
+
+        if self.figshare_metadata['status'] == 'public':
             if self.figshare_metadata['modified_date'] != self.figshare_desktop_metadata['public_modified_date']:
                 self.figshare_metadata['up_to_date'] = False
             else:
