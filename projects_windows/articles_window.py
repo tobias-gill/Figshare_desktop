@@ -188,10 +188,13 @@ class ProjectsArticlesWindow(QWidget):
         sizepolicy.setVerticalPolicy(QSizePolicy.Expanding)
         sizepolicy.setVerticalPolicy(QSizePolicy.Preferred)
 
+        btn_upload = QPushButton()
+        btn_upload.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/figshare_upload.png')))
+        btn_upload.setSizePolicy(sizepolicy)
+
         btn_download = QPushButton()
         btn_download.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/figshare_download.png')))
         btn_download.setSizePolicy(sizepolicy)
-
         btn_download.pressed.connect(self.on_download_pressed)
 
         btn_selection = QPushButton()
@@ -204,6 +207,7 @@ class ProjectsArticlesWindow(QWidget):
         self.btn_selection = btn_selection
         vbox = QVBoxLayout()
 
+        vbox.addWidget(btn_upload)
         vbox.addWidget(btn_download)
         vbox.addWidget(btn_selection)
 
