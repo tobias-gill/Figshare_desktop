@@ -4,6 +4,8 @@
 
 import os
 import itertools
+from requests.exceptions import HTTPError
+
 from PyQt5.QtWidgets import (QWidget, QPushButton, QTreeWidget, QTreeWidgetItem, QAbstractItemView,
                              QHBoxLayout, QVBoxLayout, QSizePolicy, QMessageBox)
 from PyQt5.QtGui import (QIcon)
@@ -224,9 +226,13 @@ class SelectionWindow(QWidget):
                 id_element = column
                 break
 
-        article_ids = self.article_tree.selectedItems()
+        tree_items = self.article_tree.selectedItems()
 
-        if article_ids == []:
+        article_ids = []
+        for item in tree_items:
+            article_ids.append(item.data(id_element, 0))
+
+        if tree_items == []:
             reply = QMessageBox.question(self, 'Message', "Upload all files?",
                                          QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
@@ -276,9 +282,16 @@ class SelectionWindow(QWidget):
         # Generate the upload dictionary.
         upload_dict = local_article.get_upload_dict()
 
+        local_file_location = local_article.figshare_desktop_metadata['location']
         # Upload file to project.
-        Projects(self.token).create_article(project_id, upload_dict)
-
+        projects = Projects(self.token)
+        try:
+            figshare_article_id = projects.create_article(project_id, upload_dict)
+            projects.upload_file(figshare_article_id, local_file_location)
+        except FileExistsError as err:
+            print(err)
+        except HTTPError as err:
+            print(err)
 
     def activate_project_article_selection_btn(self):
         if self.main_window.centralWidget().projects_open:
