@@ -180,10 +180,9 @@ class LocalArticleEditWindow(ArticleEditWindow):
             article.update_info(update_dict)
 
         selection_list = self.main_window.centralWidget().selection_window.selection_article_list
-
-        for local_article_id in self.local_article_ids:
-            selection_list.append(local_article_id)
-            # Update selection qtree
+        # Add articles to selection window set.
+        selection_list |= self.local_article_ids
+        # Update selection qtree
 
     def decide_basic_layout(self, article_ids):
 

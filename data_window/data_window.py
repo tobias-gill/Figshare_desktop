@@ -185,13 +185,14 @@ class DataWindow(QWidget):
             next_local_id = self.main_window.next_local_id
 
             if items != []:
-                articles_list = []
+                articles_set = {}
                 for article in items:
                     if article.data(type_element, 0) != 'File Folder':
-                        local_articles[next_local_id] = gen_local_article(self.token, article.data(filename_element, 0))
-                        articles_list.append(next_local_id)
+                        local_id = 'L' + str(next_local_id)
+                        local_articles[local_id] = gen_local_article(self.token, article.data(filename_element, 0))
+                        articles_set.add(local_id)
                         next_local_id += 1
 
                 self.local_metadata_window = LocalArticleEditWindow(self.app, self.token, self.main_window,
-                                                                    self.geometry(), articles_list)
+                                                                    self.geometry(), articles_set)
                 self.local_metadata_window.show()

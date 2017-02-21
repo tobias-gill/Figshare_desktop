@@ -29,7 +29,7 @@ class SelectionWindow(QWidget):
         self.token = OAuth_token
         self.main_window = main_window
 
-        self.selection_article_list = []
+        self.selection_article_list = set()
 
         self.initUI()
 
@@ -150,18 +150,28 @@ class SelectionWindow(QWidget):
 
         return self.article_tree
 
-    def update_article_list_layout(self):
-
-        header_lst = ["Location", "Title", "id", "Created", "Published"]
-
-        temp_list = []
-        self.selection_article_list = sorted(self.selection_article_list)
-        for k, g in itertools.groupby(self.selection_article_list):
-            temp_list.append(k)
-        self.selection_article_list = temp_list
-        temp_list = []
+    def update_article_list_layout(self, headers=None):
+        """
+        Re-formats the selection window QTreeWidget by a given set of column headers.
+        :param headers: List of strings containing metadata field names.
+        :return:
+        """
+        # Set headers to default if none are given.
+        if headers is None:
+            headers = ["Location", "Title", "id", "Created", "Published"]
 
         self.article_tree.clear()
+
+        # Iterate through the article ids.
+        for article_id in self.selection_article_list:
+            # Get the type of the article
+            id_type = type(article_id)
+
+            # If it is a local file type will be an int.
+            if id_type is int:
+                pass
+            # If it is a figshare article, type will be str.
+
         for item in self.selection_article_list:
             article = [str(item.data(column, 0)) for column in range(len(header_lst) + 1)]
             self.article_tree.addTopLevelItem(QTreeWidgetItem(article))
