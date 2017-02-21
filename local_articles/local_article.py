@@ -19,12 +19,8 @@ class LocalArticle(Article):
 
     def __init__(self, OAuth_token, filename):
 
-        # Define the local file path and file title.
-        self.local_path = os.path.abspath(filename)
-        file_title = os.path.split(filename)[-1]
-
         # Initialize dictionary for basic figshare metadata.
-        self.figshare_metadata = {'title': file_title,
+        self.figshare_metadata = {'title': None,
                                   'id': None,
                                   'description': None,
                                   'tags': None,
@@ -36,12 +32,18 @@ class LocalArticle(Article):
                                   'license': None,
                                   'version': None,
                                   'size': None,
-                                  'status': 'local'
+                                  'status': 'local',
+                                  'type': None
                                   }
 
-        self.figshare_desktop_metadata = {'location': self.local_path,
+        self.figshare_desktop_metadata = {'location': None,
                                           'thumb': None
                                           }
+        # Define the local file path and file title.
+        self.local_path = os.path.abspath(filename)
+        file_title = os.path.split(filename)[-1]
+        self.figshare_metadata['title'] = file_title
+        self.figshare_desktop_metadata['location'] = self.local_path
 
         # Initialize an empty object that will hold generated QTreeWidgetItem representations of the article.
         self.qtreeitem = None
@@ -56,7 +58,7 @@ class LocalArticle(Article):
         """
         pass
 
-    def file_read(self, filename):
+    def read_file(self, filename):
         """
         If the file type is recognised parse the file to get metadata.
         :param filename: local path to file.
@@ -64,5 +66,3 @@ class LocalArticle(Article):
         """
         # This is not required for a simple figshare article. It should be re-defined for specific file types.
         return None
-
-

@@ -9,6 +9,7 @@ from .stm_articles.spectroscopy_article import SpecArticle
 from .stm_articles.topography_article import TopoArticle
 
 from ..local_articles.local_article import LocalArticle
+from ..local_articles.local_stm_articles.local_topography_article import LocalTopoArticle
 
 __author__ = "Tobias Gill"
 __credits__ = ["Tobias Gill", "Adrian-Tudor Panescu", "Miriam Keshani"]
@@ -43,9 +44,11 @@ def gen_article(filename, OAuth_token, project_id, article_id):
 def gen_local_article(OAuth_token, filename):
     file_path, file_ext = splitext(filename)
 
-    file_types = {}
+    file_types = {# OMICRON FLAT FILES
+                  '.Z_flat': LocalTopoArticle
+    }
 
     if file_ext in file_types:
-        return file_types[file_ext]()
+        return file_types[file_ext](OAuth_token, filename, file_ext)
     else:
         return LocalArticle(OAuth_token, filename)
