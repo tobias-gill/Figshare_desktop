@@ -71,7 +71,7 @@ class LocalTopoArticle(TopoArticle, LocalArticle):
 
                 directions_str = ''
                 for direction in file_data:
-                    directions_str += direction.ino['direction'] + ', '
+                    directions_str += direction.info['direction'] + ', '
                 self.stm_topo_metadata['direction'] = directions_str
             else:
                 file_data = file_types[self.file_ext].load(filename)
@@ -79,4 +79,4 @@ class LocalTopoArticle(TopoArticle, LocalArticle):
 
             for key in file_info:
                 if key in self.stm_topo_metadata:
-                    self.stm_topo_metadata[key] = file_data.info[key]
+                    self.stm_topo_metadata[key] = file_info[key]

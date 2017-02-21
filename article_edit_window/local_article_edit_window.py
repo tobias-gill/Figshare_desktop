@@ -62,6 +62,12 @@ class LocalArticleEditWindow(ArticleEditWindow):
         # Fill in selected metadata from filenames.
         self.decide_basic_layout(self.local_article_ids)
 
+        # Determine if file is of a known format to be able to read for additional metadata.
+        self.file_specific_layout = self.decide_file_layout(self.local_article_ids)
+        # If it is known then add an additional metadata tab.
+        if self.file_specific_layout is not None:
+            self.tab_layout.addTab(self.file_specific_layout, 'File Metadata')
+
         hbox.addWidget(self.tab_layout)
         self.setLayout(hbox)
 
@@ -108,66 +114,55 @@ class LocalArticleEditWindow(ArticleEditWindow):
     def on_save_pressed(self):
 
         tab_layout = self.tab_layout
-        open_tab_index = tab_layout.currentIndex()
 
-        if open_tab_index == 0:
-            basic_info_dict = {}
-            basic_info_layout = self.basic_info_widget.widget().layout()
+        basic_info_dict = {}
+        basic_info_layout = self.basic_info_widget.widget().layout()
+        for widget_pos in range(0, basic_info_layout.count() - 1, 2):
+            lbl = basic_info_layout.itemAt(widget_pos).widget().text()
+            widget = basic_info_layout.itemAt(widget_pos + 1).widget()
+            if widget is None:
+                widget = basic_info_layout.itemAt(widget_pos + 1).layout()
+            widget_type = type(widget)
+            if widget_type is QLineEdit:
+                if len(self.local_article_ids) > 1:
+                    if lbl == 'title':
+                        value = None
+                    else:
+                        value = widget.text()
+                else:
+                    value = widget.text()
+            elif widget_type is QTextEdit:
+                value = widget.toPlainText()
+            elif widget_type is QHBoxLayout:
+                value = []
+                for btn_pos in range(0, widget.count() - 2, 1):
+                    btn = widget.itemAt(btn_pos).widget()
+                    value.append(btn.text())
+            elif widget_type is QComboBox:
+                value = widget.currentIndex()
+            if value is not []:
+                basic_info_dict[lbl] = value
+            else:
+                basic_info_dict[lbl] = None
+        update_dict = {**basic_info_dict}
 
-            for widget_pos in range(0, basic_info_layout.count() - 1, 2):
-                lbl = basic_info_layout.itemAt(widget_pos).widget().text()
-                widget = basic_info_layout.itemAt(widget_pos + 1).widget()
-                if widget is None:
-                    widget = basic_info_layout.itemAt(widget_pos + 1).layout()
-
+        if self.file_specific_layout is not None:
+            file_specific_dict = {}
+            file_specific_layout = self.file_specific_layout.widget().layout()
+            for widget_pos in range(0, file_specific_layout.count() - 1, 2):
+                lbl = file_specific_layout.itemAt(widget_pos).widget().text()
+                widget = file_specific_layout.itemAt(widget_pos + 1).widget()
                 widget_type = type(widget)
                 if widget_type is QLineEdit:
-                    if len(self.local_article_ids) > 1:
-                        if lbl == 'title':
-                            value = None
-                        else:
-                            value = widget.text()
-                    else:
-                        value = widget.text()
+                    value = widget.text()
                 elif widget_type is QTextEdit:
                     value = widget.toPlainText()
-                elif widget_type is QHBoxLayout:
-                    value = []
-                    for btn_pos in range(0, widget.count() - 2, 1):
-                        btn = widget.itemAt(btn_pos).widget()
-                        value.append(btn.text())
-                elif widget_type is QComboBox:
-                    value = widget.currentIndex()
-                if value is not []:
-                    basic_info_dict[lbl] = value
+                if value is not [] and value is not '':
+                    file_specific_dict[lbl] = value
                 else:
-                    basic_info_dict[lbl] = None
+                    file_specific_dict[lbl] = None
+            update_dict = {**update_dict, **file_specific_dict}
 
-            update_dict = {**basic_info_dict}
-        """
-        elif open_tab_index == 1:
-            if self.file_specific_layout is not None:
-                file_specific_dict = {}
-                file_specific_layout = self.file_specific_layout.widget().layout()
-
-                for widget_pos in range(0, file_specific_layout.count() - 1, 2):
-                    lbl = file_specific_layout.itemAt(widget_pos).widget().text()
-                    widget = file_specific_layout.itemAt(widget_pos + 1).widget()
-
-                    widget_type = type(widget)
-                    if widget_type is QLineEdit:
-                        value = widget.text()
-
-                    elif widget_type is QTextEdit:
-                        value = widget.toPlainText()
-
-                    if value is not [] and value is not '':
-                        file_specific_dict[lbl] = value
-                    else:
-                        file_specific_dict[lbl] = None
-
-                update_dict = {**file_specific_dict}
-        """
         if len(self.local_article_ids) > 1:
             local_articles = self.main_window.local_articles
             for local_article_id in self.local_article_ids:
@@ -263,3 +258,49 @@ class LocalArticleEditWindow(ArticleEditWindow):
                         edit_widget.setCurrentIndex(0)
                     else:
                         edit_widget.setCurrentIndex(info_int)
+
+    def known_file_type(self, article_id):
+        article = self.main_window.local_articles[article_id]
+        article_type = article.get_type()
+        if article_type != 'article':
+            return article.input_dicts()[2:]
+        else:
+            return None
+
+    def decide_file_layout(self, articles_ids):
+
+        # Local reference to the articles dictionary.
+        articles = self.main_window.local_articles
+
+        # If more than one article is to be edited check to see if all files are of the same type.
+        if len(articles_ids) > 1:
+            # Get the type of the first article.
+            first_id = next(iter(articles_ids))
+            first_type = articles[first_id].get_type()
+            # Check that all other articles are the same.
+            for article in articles_ids:
+                article_type = articles[article].get_type()
+                # If article is not the same type as the first return None. Else continue.
+                if article_type != first_type:
+                    return None
+            # At this point we know all files are the same type, but will have different values for their metadata.
+            # Here we create a new blank dictionary from the keys of the first article.
+
+            article_dict = self.known_file_type(first_id)
+            if article_dict is not None:
+                blank_dict = dict.fromkeys(article_dict[0], '')
+                return self.file_specific_info_layout([blank_dict])
+            else:
+                return None
+
+        # If a single article id has been given.
+        else:
+            first_id = next(iter(articles_ids))
+            # Find out if the file type is known.
+            article_dicts = self.known_file_type(first_id)
+            # If the file type is know generate a file specific metadata layout.
+            if article_dicts is not None:
+                return self.file_specific_info_layout(article_dicts)
+            # Otherwise return nothing.
+            else:
+                return None
