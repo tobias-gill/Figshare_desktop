@@ -257,6 +257,8 @@ class SelectionWindow(QWidget):
             elif upload_type == 'collection':
                 # Can only add exsiting figshare_articles to a collection.
                 pass
+        for i in range(2):
+            self.main_window.centralWidget().projects_window.projects_info_window.on_show_articles_pressed()
 
     def projects_or_collections_upload(self):
 

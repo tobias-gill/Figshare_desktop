@@ -280,18 +280,19 @@ class ProjectsArticlesWindow(QWidget):
 
     def on_selection_pressed(self):
 
-        items = self.article_tree.selectedItems()
-        if len(items) != 0:
-            self.selection_article_list = self.main_window.centralWidget().selection_window.selection_article_list
-            for item in items:
+        header_item = self.article_tree.headerItem()
+        for column in range(header_item.columnCount()):
+            if header_item.data(column, 0) == 'id':
+                id_element = column
+                break
 
-                old_data = []
-                for column in range(item.columnCount() + 1):
-                    old_data.append(item.data(column, 0))
-                new_data = ['Figshare']
-                for column in range(len(old_data)):
-                    new_data.append(old_data[column])
-                self.selection_article_list.append(QTreeWidgetItem(new_data))
+        tree_items = self.article_tree.selectedItems()
+
+        if len(tree_items) != 0:
+            self.selection_article_list = self.main_window.centralWidget().selection_window.selection_article_list
+            for item in tree_items:
+                article_id = item.data(id_element, 0)
+                self.selection_article_list.add(article_id)
             self.main_window.centralWidget().selection_window.update_article_list_layout()
 
     def on_edit_pressed(self):
