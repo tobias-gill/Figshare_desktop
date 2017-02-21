@@ -39,7 +39,7 @@ class LocalArticle(Article):
                                   'status': 'local'
                                   }
 
-        self.figshare_desktop_metadata = {'location': None,
+        self.figshare_desktop_metadata = {'location': self.local_path,
                                           'thumb': None
                                           }
 

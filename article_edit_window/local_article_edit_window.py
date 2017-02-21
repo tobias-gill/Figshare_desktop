@@ -175,7 +175,7 @@ class LocalArticleEditWindow(ArticleEditWindow):
                 article = local_articles[a_id]
                 article.update_info(update_dict)
         else:
-            a_id = self.local_article_ids[0]
+            a_id = next(iter(self.local_article_ids))
             article = self.main_window.local_articles[a_id]
             article.update_info(update_dict)
 
@@ -183,10 +183,12 @@ class LocalArticleEditWindow(ArticleEditWindow):
         # Add articles to selection window set.
         selection_list |= self.local_article_ids
         # Update selection qtree
+        self.main_window.centralWidget().selection_window.update_article_list_layout()
 
     def decide_basic_layout(self, article_ids):
 
-        article = self.main_window.local_articles[article_ids[0]]
+        article_id = next(iter(article_ids))
+        article = self.main_window.local_articles[article_id]
         basic_info_dict = article.figshare_metadata
         basic_info_layout = self.basic_info_widget.widget().layout()
         for widget_pos in range(0, basic_info_layout.count() - 1, 2):

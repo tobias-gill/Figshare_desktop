@@ -135,7 +135,7 @@ class SelectionWindow(QWidget):
     def article_list_layout(self):
 
         lst = QTreeWidget()
-        header_lst = ["Location", "Title", "id", "Created", "Published"]
+        header_lst = ["Location", "Title", "id", "Status", "Tags"]
         header = QTreeWidgetItem(header_lst)
         lst.setHeaderItem(header)
         lst.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -158,7 +158,7 @@ class SelectionWindow(QWidget):
         """
         # Set headers to default if none are given.
         if headers is None:
-            headers = ["location", "title", "id", "up_to_date", "tags"]
+            headers = ["location", "title", "id", "status", "tags"]
 
         self.article_tree.clear()
 
@@ -187,9 +187,9 @@ class SelectionWindow(QWidget):
                     article = self.main_window.articles[article_id]
 
                 # generate a qtreewidgetitem from the article and headers list.
-                qtree_item = article.gen_qtree_item(headers)
+                article.gen_qtree_item(headers)
                 # Add qtreeitem as top level item in the tree.
-                self.article_tree.addTopLevelItem(qtree_item)
+                self.article_tree.addTopLevelItem(article.qtreeitem)
 
         # Format the Qtreewidget
         for column in range(len(headers)):
@@ -218,21 +218,36 @@ class SelectionWindow(QWidget):
 
     def upload_selection(self):
 
-        items = self.article_tree.selectedItems()
-        if items == []:
+        header_item = self.article_tree.headerItem()
+        for column in range(header_item.columnCount()):
+            if header_item.data(column, 0) == 'id':
+                id_element = column
+                break
+
+        article_ids = self.article_tree.selectedItems()
+
+        if article_ids == []:
             reply = QMessageBox.question(self, 'Message', "Upload all files?",
                                          QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
-                items = self.article_tree.items()
+                article_ids = []
+                for row in range(self.article_tree.topLevelItemCount()):
+                    article_item = self.article_tree.topLevelItem(row)
+                    article_ids.append(article_item.data(id_element, 0))
             else:
-                items = None
+                article_ids = None
 
-        if items != None:
+        if article_ids != None:
             upload_type, upload_id = self.projects_or_collections_upload()
             if upload_type == 'project':
-
                 # Can only upload new files to a project. Cannot move figshare_articles between existing projects.
-                pass
+                #Iterate through the selected articles.
+                for article in article_ids:
+                    # Check that the article is a local file.
+                    if article[0] == 'L':
+                        self.upload_to_project(article, upload_id)
+                    else:
+                        pass
             elif upload_type == 'collection':
                 # Can only add exsiting figshare_articles to a collection.
                 pass
@@ -248,6 +263,22 @@ class SelectionWindow(QWidget):
 
         else:
             return 'collection', 'collection_id'
+
+    def upload_to_project(self, local_article_id,  project_id):
+        """
+        Uploads a local file to a given figshare project.
+        :param local_article_id: str. ID of local file to be uploaded.
+        :param project_id: int. Project ID for file to be uploaded to.
+        :return:
+        """
+        # Get the local article
+        local_article = self.main_window.local_articles[local_article_id]
+        # Generate the upload dictionary.
+        upload_dict = local_article.get_upload_dict()
+
+        # Upload file to project.
+        Projects(self.token).create_article(project_id, upload_dict)
+
 
     def activate_project_article_selection_btn(self):
         if self.main_window.centralWidget().projects_open:
