@@ -90,7 +90,7 @@ class Article(object):
 
         return [self.figshare_metadata, self.figshare_desktop_metadata]
 
-    def gen_qtree_item(self, input_list, input_dicts):
+    def gen_qtree_item(self, input_list, input_dicts=None):
         """
         Create a QTreeWidgetItem from a list of keys corresponding to values in figshare_metadata.
         :param input_list: List of strings corresponding to keys in the input dictionaries. The order of the list
@@ -99,6 +99,9 @@ class Article(object):
                dictionaries is important if multiple dictionaries contain the same key. Only the first will be used.
         :return:
         """
+
+        if input_dicts is None:
+            input_dicts = self.input_dicts()
 
         tree_list = []
         for key in input_list:

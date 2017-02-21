@@ -158,26 +158,44 @@ class SelectionWindow(QWidget):
         """
         # Set headers to default if none are given.
         if headers is None:
-            headers = ["Location", "Title", "id", "Created", "Published"]
+            headers = ["location", "title", "id", "up_to_date", "tags"]
 
         self.article_tree.clear()
 
         # Iterate through the article ids.
         for article_id in self.selection_article_list:
+
             # Get the type of the article
-            id_type = type(article_id)
+            article_type = type(article_id)
+            if article_type is not str:
+                # If the article id is not a string it is likely an integer id for a figshare article. If so make it a
+                # string.
+                if article_type is int:
+                    article_id = str(article_id)
+                # Otherwise it is an unrecognised format and should be ignored.
+                else:
+                    article_id = None
 
-            # If it is a local file type will be an int.
-            if id_type is int:
-                pass
-            # If it is a figshare article, type will be str.
+            # From the string value of the article_id determine if it is a local file.
+            # Local ids are prepended by an 'L'.
+            if article_id is not None:
+                if article_id[0] == 'L':
+                    # Get article from local articles
+                    article = self.main_window.local_articles[article_id]
+                else:
+                    # Get article from figshare articles
+                    article = self.main_window.articles[article_id]
 
-        for item in self.selection_article_list:
-            article = [str(item.data(column, 0)) for column in range(len(header_lst) + 1)]
-            self.article_tree.addTopLevelItem(QTreeWidgetItem(article))
+                # generate a qtreewidgetitem from the article and headers list.
+                qtree_item = article.gen_qtree_item(headers)
+                # Add qtreeitem as top level item in the tree.
+                self.article_tree.addTopLevelItem(qtree_item)
 
-        for column in range(len(header_lst)):
+        # Format the Qtreewidget
+        for column in range(len(headers)):
+            # Set the width of the columns to the data.
             self.article_tree.resizeColumnToContents(column)
+        # sort the list by local or figshare.
         self.article_tree.sortItems(0, Qt.AscendingOrder)
 
     def upload_layout(self):
