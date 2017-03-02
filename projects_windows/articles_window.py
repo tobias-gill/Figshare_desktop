@@ -174,7 +174,7 @@ class ProjectsArticlesWindow(QWidget):
                 temp_article.gen_qtree_item(input_list, temp_article.input_dicts())
 
                 lst.addTopLevelItem(temp_article.qtreeitem)
-                self.main_window.articles[article['id']] = temp_article
+                self.main_window.articles[str(article['id'])] = temp_article
 
         for column in range(len(header_list)):
             lst.resizeColumnToContents(column)
@@ -279,20 +279,35 @@ class ProjectsArticlesWindow(QWidget):
                 download_file(url, local_path, self.token)
 
     def on_selection_pressed(self):
+        """
+        Pushes article from a project into the selection window.
+        :return:
+        """
 
-        header_item = self.article_tree.headerItem()
+        # Get the QTreeWidget Column number that contains the Figshare article id numbers
+        header_item = self.article_tree.headerItem()  # Reference to the tree header
+
+        # Iterate through the columns in the header
         for column in range(header_item.columnCount()):
+            # If the column string is 'id' then get the column index
             if header_item.data(column, 0) == 'id':
                 id_element = column
-                break
+                break  # Can break here as we have the column number
 
+        # Gets the list of tree items selected by the user
         tree_items = self.article_tree.selectedItems()
 
+        # Provided that at least one article is selected
         if len(tree_items) != 0:
+
+            # Reference to the selection window article list
             self.selection_article_list = self.main_window.centralWidget().selection_window.selection_article_list
+
+            # Iterate through the selected items
             for item in tree_items:
-                article_id = item.data(id_element, 0)
-                self.selection_article_list.add(article_id)
+                article_id = item.data(id_element, 0)  # Get the Figshare article id
+                self.selection_article_list.add(article_id)  # Add the article id to the selection window list
+            # Once all articles have been added we update the selection window
             self.main_window.centralWidget().selection_window.update_article_list_layout()
 
     def on_edit_pressed(self):

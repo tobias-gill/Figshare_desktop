@@ -55,6 +55,8 @@ class Article(object):
 
         self.fill_info()
 
+        self.figshare_desktop_metadata['location'] = 'Figshare'
+
     def gen_figshare_metadata(self, input_dict):
         """
         Fill values in basic figshare_metadata dictionary from input dictionary.
