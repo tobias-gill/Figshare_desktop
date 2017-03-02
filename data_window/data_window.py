@@ -65,6 +65,17 @@ class DataWindow(QWidget):
 
         self.setWindowFlags(Qt.FramelessWindowHint)
 
+    def closeEvent(self, event):
+        """
+        When window is closed checks to see if the local_article_edit_window is open. If so, it too will be closed.
+        :param event: Close event.
+        :return:
+        """
+
+        # Check to see if local_article_edit_window is open
+        if self.local_article_edit_window_open:
+            self.local_metadata_window.close()
+
     def set_root_layout(self):
         sizepolicy = QSizePolicy()
         sizepolicy.setVerticalPolicy(QSizePolicy.Expanding)
