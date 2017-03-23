@@ -10,7 +10,7 @@ from PyQt5.QtGui import (QPixmap, QFont)
 
 from figshare_interface.http_requests.figshare_requests import login_request
 
-from Figshare_desktop.main_window.main_window import MainWindow
+from Figshare_desktop.main_window.framing_window import MainWindow
 
 __author__ = "Tobias Gill"
 __credits__ = ["Tobias Gill", "Adrian-Tudor Panescu", "Miriam Keshani"]

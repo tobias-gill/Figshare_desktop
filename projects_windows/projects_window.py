@@ -4,11 +4,13 @@
 
 import os
 import math
-from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QToolTip, QMessageBox, QMainWindow,
-                             QAction, qApp, QHBoxLayout, QVBoxLayout, QSizePolicy, QScrollBar)
+from PyQt5.QtWidgets import (QMdiSubWindow, QLabel, QPushButton, QToolTip, QMessageBox, QMainWindow,
+                             QWidget, qApp, QHBoxLayout, QVBoxLayout, QSizePolicy, QScrollBar)
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QPoint)
 
+from ..formatting.formatting import scaling_ratio
+from ..formatting.formatting import checkable_button
 from Figshare_desktop.projects_windows.project_info_window import ProjectInfoWindow
 
 from figshare_interface import Projects
@@ -22,127 +24,152 @@ __email__ = "toby.gill.09@ucl.ac.uk"
 __status__ = "Development"
 
 
-class ProjectsWindow(QWidget):
+class ProjectsWindow(QMdiSubWindow):
 
-    def __init__(self, app, OAuth_token, main_window_loc, main_window):
+    def __init__(self, app, OAuth_token, parent):
         super().__init__()
 
         self.app = app
         self.token = OAuth_token
-        self.main_window_loc = main_window_loc
-        self.main_window = main_window
+        self.parent = parent
 
+        self.initFig()
         self.initUI()
+
+    def initFig(self):
+        """
+        Initialize Figshare information
+        """
+        self.project_list = self.get_project_list(self.token)
 
     def initUI(self):
 
-        self.statusbar = self.main_window.statusbar
+        self.format_window()
 
-        self.hbox = QHBoxLayout()
+        # Create a horizontal box layout to hold the project buttons
+        self.project_buttons_box = QHBoxLayout()
+        # Create a vertical box layout to hold the project window widgets and layouts
         self.vbox = QVBoxLayout()
-        self.vbox.addLayout(self.hbox)
-        self.setLayout(self.vbox)
 
-        self.formatWindow()
+        # Add the scroll bar to the vertical box layout
+        self.s_bar = self.scroll_bar()
+        self.vbox.addWidget(self.s_bar)
 
-        self.get_proj_list(self.token)
+        self.create_project_bar(0, 4)
 
-        self.create_proj_bar(0, 4)
+        self.vbox.addLayout(self.project_buttons_box)
 
-        self.scrollBar()
+        window_widget = QWidget()
+        window_widget.setLayout(self.vbox)
+        self.setWidget(window_widget)
 
-        self.projects_info_open = False
-        self.projects_info_id = None
+    def format_window(self):
+        """
+        Formats the Projects window
+        """
+        # Get the scaling ratios for the window size and fonts
+        w_scale, f_scale = scaling_ratio(self.app)
 
+        # Gets the QRect of the main window
+        geom = self.parent.geometry()
+        # Gets the Qrect of the sections window
+        section_geom = self.parent.section_geom
 
-    def formatWindow(self):
-        m_x0 = self.main_window_loc.x()
-        m_y0 = self.main_window_loc.y()
-        m_width = self.main_window_loc.width()
-        m_height = self.main_window_loc.height()
-
-        screen = self.app.primaryScreen().availableGeometry()
-
-        x0 = m_x0 + m_width + 10
-        y0 = m_y0
-        self.w_width = screen.width() - x0
-        self.w_height = screen.height() / 6
-
-        self.setGeometry(x0, y0, self.w_width, self.w_height)
-
+        # Define geometries for the projects window
+        x0 = section_geom.x() + section_geom.width()
+        y0 = section_geom.y()
+        w = geom.width() - x0
+        h = ((geom.height() - y0) / 6)
+        self.setGeometry(x0, y0, w, h)
+        # Remove frame from projects window
         self.setWindowFlags(Qt.FramelessWindowHint)
 
-    def mousePressEvent(self, event):
-        self.oldPos = event.globalPos()
+    def closeEvent(self):
+        """
+        Ensures that the project info window is closed if it is open
+        """
+        pass
 
-    def mouseMoveEvent(self, event):
-        delta = QPoint(event.globalPos() - self.oldPos)
-        self.move(self.x() + delta.x(), self.y() + delta.y())
-        self.oldPos = event.globalPos()
-
-    def closeEvent(self, event):
-
-        if self.projects_info_open:
-            self.projects_info_window.close()
-
-    def scrollBar(self):
-        self.scroll_bar = QScrollBar(Qt.Horizontal)
-        self.scroll_bar.setMaximum(len(self.project_list) - 4)
-        self.scroll_bar.sliderMoved.connect(self.slider_val)
-        self.scroll_bar.valueChanged.connect(self.slider_val)
-        self.vbox.addWidget(self.scroll_bar)
+    def scroll_bar(self):
+        """
+        Creates a scroll bar set to the size of the projects list
+        :return: QScrollBar Object
+        """
+        s_bar = QScrollBar(Qt.Horizontal)
+        s_bar.setMaximum(len(self.project_list) - 4)
+        s_bar.sliderMoved.connect(self.slider_val)
+        s_bar.valueChanged.connect(self.slider_val)
+        return s_bar
 
     def slider_val(self):
+        """
 
-        while self.hbox.count():
-            item = self.hbox.takeAt(0)
+        :return:
+        """
+        while self.project_buttons_box.count():
+            item = self.project_buttons_box.takeAt(0)
             item.widget().deleteLater()
 
-        scroll_bar_pos = self.scroll_bar.value()
+        s_bar_pos = self.s_bar.value()
 
-        self.create_proj_bar(scroll_bar_pos, scroll_bar_pos + 4)
+        self.create_project_bar(s_bar_pos, s_bar_pos + 4)
 
     def create_proj_thumb(self, title, published_date, id):
+        """
+        Creates a large pushbutton for a project
+        :param title: string. Project title
+        :param published_date: string. project published date
+        :param id: int. figshare project id number
+        :return: QPushButton object
+        """
+        geom = self.geometry()
 
-        window_size = self.geometry()
+        # Get the scalig ratios for the current window
+        w_ratio, f_ratio = scaling_ratio(self.app)
+        # Scale the font sizes
+        title_fnt_size = 14 * f_ratio
+        date_ftn_size = 12 * f_ratio
 
-        title_fnt_size = window_size.height() / 20
-        date_fnt_size = window_size.height() / 30
-
-        btn_box = QVBoxLayout()
-
+        # Create the title label
         title_lbl = QLabel()
-        title_lbl.setText("{title}".format(title=title))
+        title_lbl.setText("{}".format(title))
         title_lbl_fnt = QFont('SansSerif', title_fnt_size)
         title_lbl_fnt.setBold(True)
         title_lbl.setFont(title_lbl_fnt)
         title_lbl.setWordWrap(True)
 
+        # Create the date label
         date_lbl = QLabel()
-        date_lbl.setText("published: {date}".format(date=published_date))
-        date_lbl_fnt = QFont('SansSerif', date_fnt_size)
+        date_lbl.setText("{}".format(published_date))
+        date_lbl_fnt = QFont('SansSerif', date_ftn_size)
         date_lbl.setFont(date_lbl_fnt)
         date_lbl.setStyleSheet('color: gray')
         date_lbl.setWordWrap(True)
 
-        btn_box.addWidget(title_lbl)
-        btn_box.addWidget(date_lbl)
+        # Create a layout to hold the labels
+        lbl_box = QVBoxLayout()
+        # Add labels to layout
+        lbl_box.addWidget(title_lbl)
+        lbl_box.addWidget(date_lbl)
 
+        # Create a button for the project
         btn = QPushButton(self)
-        btn.setLayout(btn_box)
-        btn.setCheckable(True)
-        btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        btn.setStatusTip('Open Project Info')
+        checkable_button(self.app, btn)
+        btn.setLayout(lbl_box)
+        #btn.clicked[bool].connect()
 
-        btn.clicked[bool].connect(lambda: self.on_proj_btn_pressed(id))
+        self.project_buttons_box.addWidget(btn)
 
-        self.hbox.addWidget(btn)
-
-    def create_proj_bar(self, list_start, list_finish):
-
+    def create_project_bar(self, start, finish):
+        """
+        Creates a series of Project push buttons
+        :param start: start position in projects list
+        :param finish: finish position in projects list
+        """
         self.buttons = {}
         i = 0
-        for project_pos in range(list_start, list_finish):
+
+        for project_pos in range(start, finish):
             title = self.project_list[project_pos]['title']
             pub_date = self.project_list[project_pos]['published_date']
             id = self.project_list[project_pos]['id']
@@ -150,51 +177,11 @@ class ProjectsWindow(QWidget):
             i += 1
             self.create_proj_thumb(title, pub_date, id)
 
-    def on_proj_btn_pressed(self, id):
-
-        btns = [self.hbox.itemAt(i).widget() for i in range(self.hbox.count())]
-
-        btn_n = self.buttons[str(id)]
-        for btn in btns:
-            if btns[btn_n] is btn:
-                pass
-            elif btn.isChecked():
-                btn.toggle()
-
-
-
-        if self.projects_info_id is None:
-            self.projects_info_open = True
-            self.projects_info_id = id
-            self.projects_info_window = ProjectInfoWindow(self.app, self.token, self.geometry(), self.main_window, id)
-            self.projects_info_window.show()
-
-        elif self.projects_info_id == id:
-            if self.projects_info_open:
-                self.projects_info_open = False
-                self.projects_info_window.close()
-            else:
-                self.projects_info_open = True
-                self.projects_info_window = ProjectInfoWindow(self.app, self.token, self.geometry(), self.main_window,
-                                                              id)
-                self.projects_info_window.show()
-        else:
-            if self.projects_info_open:
-                self.projects_info_open = True
-                self.projects_info_id = id
-                self.projects_info_window.close()
-                self.projects_info_window = ProjectInfoWindow(self.app, self.token, self.geometry(), self.main_window,
-                                                              id)
-                self.projects_info_window.show()
-            else:
-                self.projects_info_open = True
-                self.projects_info_id = id
-                self.projects_info_window = ProjectInfoWindow(self.app, self.token, self.geometry(), self.main_window,
-                                                              id)
-                self.projects_info_window.show()
-
-    def get_proj_list(self, token):
-
+    def get_project_list(self, token):
+        """
+        Returns the users private project list
+        :param token: Figshare OAuth token
+        :return: array of project
+        """
         projects = Projects(token)
-
-        self.project_list = projects.get_list()
+        return projects.get_list()
