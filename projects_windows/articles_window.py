@@ -164,8 +164,8 @@ class ProjectsArticlesWindow(QWidget):
         self.tree_input_list = input_list
 
         for article in self.article_list:
-            if article['id'] in self.main_window.articles:
-                temp_article = self.main_window.articles[article['id']]
+            if str(article['id']) in self.main_window.articles:
+                temp_article = self.main_window.articles[str(article['id'])]
                 temp_article.gen_qtree_item(input_list, temp_article.input_dicts())
                 lst.addTopLevelItem(temp_article.qtreeitem)
 
@@ -240,8 +240,9 @@ class ProjectsArticlesWindow(QWidget):
 
             tree_loc = 0
             for article_id in article_list:
-                a_id = int(article_id)
-                if articles[a_id].figshare_metadata['up_to_date'] is False:
+                a_id = article_id
+                if articles[a_id].figshare_metadata['up_to_date'] is False or \
+                                articles[a_id].figshare_metadata['up_to_date'] == 'Unpublished':
                     Projects.publish_article(self.token, a_id)
                     title = articles[a_id].figshare_metadata['title']
                     project = articles[a_id].project_id
@@ -311,6 +312,7 @@ class ProjectsArticlesWindow(QWidget):
             self.main_window.centralWidget().selection_window.update_article_list_layout()
 
     def on_edit_pressed(self):
+
         items = self.article_tree.selectedItems()
 
         header_item = self.article_tree.headerItem()
@@ -350,4 +352,7 @@ class ProjectsArticlesWindow(QWidget):
                                                          self.projects_info_window_loc, article_ids,
                                                          project_id=self.project_id)
             self.article_edit_window.show()
+
+            self.main_window.centralWidget().projects_window.projects_info_window.article_edit_open = True
+            self.main_window.centralWidget().projects_window.projects_info_window.aew = self.article_edit_window
 

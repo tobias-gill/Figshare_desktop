@@ -6,7 +6,7 @@ import os
 from PyQt5.QtWidgets import (QWidget, QSizePolicy, QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QTabWidget,
                              QGridLayout, QTextEdit, QLineEdit, QScrollArea, QButtonGroup, QComboBox)
 from PyQt5.QtGui import (QIcon, QFont)
-from PyQt5.QtCore import (Qt)
+from PyQt5.QtCore import (QPoint)
 
 from Figshare_desktop.article_edit_window.article_edit_window import ArticleEditWindow
 
@@ -71,6 +71,16 @@ class LocalArticleEditWindow(ArticleEditWindow):
         hbox.addWidget(self.tab_layout)
         self.setLayout(hbox)
 
+    def mousePressEvent(self, event):
+        pass
+        # self.oldPos = event.globalPos()
+
+    def mouseMoveEvent(self, event):
+        pass
+        #delta = QPoint(event.globalPos() - self.oldPos)
+        #self.move(self.x() + delta.x(), self.y() + delta.y())
+        #self.oldPos = event.globalPos()
+
     def confirmation_layout(self):
         sizepolicy = QSizePolicy()
         sizepolicy.setVerticalPolicy(QSizePolicy.Expanding)
@@ -107,7 +117,8 @@ class LocalArticleEditWindow(ArticleEditWindow):
         :return:
         """
         # Use the data window function to also control tracking.
-        self.main_window.centralWidget().data_window.on_selection_pressed()
+        self.main_window.centralWidget().data_window.local_article_edit_window_open = False
+        self.close()
         # Toggle data window button to prevent out of sync behavior
         self.main_window.centralWidget().data_window.btn_selection.toggle()
 
@@ -138,9 +149,18 @@ class LocalArticleEditWindow(ArticleEditWindow):
                 for btn_pos in range(0, widget.count() - 2, 1):
                     btn = widget.itemAt(btn_pos).widget()
                     value.append(btn.text())
+                #if lbl == 'authors' and value == []:
+                #    value = ['test']
             elif widget_type is QComboBox:
-                value = widget.currentIndex()
-            if value is not []:
+                if lbl == 'defined_type':
+                    type_dict = {1: 'figure', 2: 'media', 3: 'dataset', 4: 'fileset', 5: 'poster', 6: 'paper',
+                                 7: 'presentation', 8: 'thesis', 9: 'code', 10: 'metadata'}
+
+                    value = type_dict[widget.currentIndex() + 1]
+                elif lbl == 'license':
+                    type_list = [None, 'CC BY', 'CC-0', 'MIT', 'GPL', 'GPL-2.0', 'GPL-3.0', 'Apache']
+                    value = type_list[widget.currentIndex()]
+            if value != []:
                 basic_info_dict[lbl] = value
             else:
                 basic_info_dict[lbl] = None

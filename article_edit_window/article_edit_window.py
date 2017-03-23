@@ -5,7 +5,7 @@ import os
 from PyQt5.QtWidgets import (QWidget, QSizePolicy, QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QTabWidget,
                              QGridLayout, QTextEdit, QLineEdit, QScrollArea, QButtonGroup, QComboBox)
 from PyQt5.QtGui import (QIcon, QFont)
-from PyQt5.QtCore import (Qt)
+from PyQt5.QtCore import (Qt, QPoint)
 
 from figshare_interface.figshare_structures.projects import Projects
 
@@ -80,6 +80,14 @@ class ArticleEditWindow(QWidget):
         self.setGeometry(x0, y0, w_width, w_height)
         self.setWindowFlags(Qt.FramelessWindowHint)
 
+    def mousePressEvent(self, event):
+        self.oldPos = event.globalPos()
+
+    def mouseMoveEvent(self, event):
+        delta = QPoint(event.globalPos() - self.oldPos)
+        self.move(self.x() + delta.x(), self.y() + delta.y())
+        self.oldPos = event.globalPos()
+
     def confirmation_layout(self):
         sizepolicy = QSizePolicy()
         sizepolicy.setVerticalPolicy(QSizePolicy.Expanding)
@@ -149,7 +157,7 @@ class ArticleEditWindow(QWidget):
 
     def decide_basic_layout(self, article_ids):
 
-        article = self.main_window.articles[int(article_ids[0])]
+        article = self.main_window.articles[article_ids[0]]
         basic_info_dict = article.figshare_metadata
         basic_info_layout = self.basic_info_widget.widget().layout()
         for widget_pos in range(0, basic_info_layout.count() - 1, 2):
@@ -281,7 +289,7 @@ class ArticleEditWindow(QWidget):
         return scroll_area
 
     def known_file_type(self, article_id):
-        article = self.main_window.articles[int(article_id)]
+        article = self.main_window.articles[article_id]
         article_type = article.get_type()
         if article_type != 'article':
             return article.input_dicts()[2:]
@@ -296,17 +304,17 @@ class ArticleEditWindow(QWidget):
         # If more than one article is to be edited check to see if all files are of the same type.
         if len(articles_ids) > 1:
             # Get the type of the first article.
-            first_type = articles[int(articles_ids[0])].get_type()
+            first_type = articles[articles_ids[0]].get_type()
             # Check that all other articles are the same.
             for article in articles_ids:
-                article_type = articles[int(article)].get_type()
+                article_type = articles[article].get_type()
                 # If article is not the same type as the first return None. Else continue.
                 if article_type != first_type:
                     return None
             # At this point we know all files are the same type, but will have different values for their metadata.
             # Here we create a new blank dictionary from the keys of the first article.
 
-            article_dict = self.known_file_type(int(articles_ids[0]))
+            article_dict = self.known_file_type(articles_ids[0])
             if article_dict is not None:
                 blank_dict = dict.fromkeys(article_dict[0], '')
                 return self.file_specific_info_layout([blank_dict])
@@ -326,6 +334,7 @@ class ArticleEditWindow(QWidget):
 
     def on_exit_pressed(self):
         self.close()
+        self.main_window.centralWidget().projects_window.projects_info_window.article_edit_open = False
         self.main_window.centralWidget().projects_window.projects_info_window.on_show_articles_pressed()
 
     def on_save_pressed(self):
@@ -403,7 +412,7 @@ class ArticleEditWindow(QWidget):
                 article.figshare_metadata['modified_date'] = private_modified_date
                 article.check_uptodate()
         else:
-            a_id = int(self.articles_ids[0])
+            a_id = self.articles_ids[0]
             article = self.main_window.articles[a_id]
             article.update_info(update_dict)
             upload_dict = article.get_upload_dict()

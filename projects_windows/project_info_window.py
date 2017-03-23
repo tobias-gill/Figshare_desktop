@@ -62,6 +62,8 @@ class ProjectInfoWindow(QWidget):
         self.editing_description = False
 
         self.articles_window_open = False
+        self.aew = None
+        self.article_edit_open = False
 
 
     def formatWindow(self):
@@ -93,6 +95,8 @@ class ProjectInfoWindow(QWidget):
 
         if self.articles_window_open:
             self.articles_window.close()
+        if self.article_edit_open:
+            self.aew.close()
 
     def get_project_info(self, token, project_id):
 

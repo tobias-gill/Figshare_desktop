@@ -42,7 +42,7 @@ class MainWindow(QMainWindow):
 
         self.place_menuBar()
 
-        QToolTip.setFont(QFont('SansSerif', 10))
+        QToolTip.setFont(QFont('SansSerif', 14))
 
         self.setWindowTitle('Figshare Desktop')
         self.setWindowIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/figshare_logo.png')))

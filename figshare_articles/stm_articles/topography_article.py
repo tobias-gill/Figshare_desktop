@@ -84,11 +84,14 @@ class TopoArticle(Article):
         """
 
         self.check_basic()
-
+        ignore_list = {'id', 'size', 'version', 'created_date', 'modified_date', 'published_date', 'up_to_date',
+                       'status', 'group_id'}
         upload_dict = {}
         for key, value in self.figshare_metadata.items():
-            if value is not None:
-                upload_dict[key] = value
+
+            if key not in ignore_list:
+                if value is not None:
+                    upload_dict[key] = value
 
         upload_dict['custom_fields'] = {}
         for key, value in self.stm_topo_metadata.items():
