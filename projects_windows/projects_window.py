@@ -9,7 +9,10 @@ from PyQt5.QtWidgets import (QMdiSubWindow, QLabel, QPushButton, QToolTip, QMess
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QObject)
 
+from ..window_tracking.window_tracking import open_windows
+
 from ..formatting.formatting import (scaling_ratio, checkable_button, search_bar)
+from Figshare_desktop.projects_windows.new_project_window import NewProjectWindow
 from Figshare_desktop.projects_windows.project_info_window import ProjectInfoWindow
 
 from figshare_interface import Projects
@@ -196,7 +199,7 @@ class ProjectsWindow(QMdiSubWindow):
         np_btn.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/Folder-48.png')))
         np_btn.setToolTip('Create a new Figshare Project')
         np_btn.setToolTipDuration(1)
-        #np_btn.pressed.connect()
+        np_btn.pressed.connect(self.on_projects_btn_pressed)
 
         # Create layout to hold buttons
         vbox = QVBoxLayout()
@@ -286,6 +289,22 @@ class ProjectsWindow(QMdiSubWindow):
         if lineedit_text == '':
             self.project_list = self.get_project_list(self.token)
             self.slider_val()
+
+    def on_projects_btn_pressed(self):
+        """
+        Called when the create new project button is pressed
+        """
+        if 'new_project_window' in open_windows:
+            open_windows.remove('new_project_window')
+            self.new_project_window.close()
+        else:
+            open_windows.remove('projects_window')
+            self.close()
+            open_windows.add('new_project_window')
+            self.parent.new_project_window = NewProjectWindow(self.app, self.token, self.parent)
+            self.parent.mdi.addSubWindow(self.parent.new_project_window)
+            self.parent.new_project_window.show()
+
 
     #####
     # Figshare API Interface Calls

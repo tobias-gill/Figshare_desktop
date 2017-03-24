@@ -115,11 +115,14 @@ class sectionWindow(QMdiSubWindow):
 
         """
         if 'projects_window' in open_windows:
-            open_windows .remove('projects_window')
-            self.projects_window.close()
+            open_windows.remove('projects_window')
+            self.parent.projects_window.close()
+        elif 'new_project_window' in open_windows:
+            open_windows.remove('new_project_window')
+            self.parent.new_project_window.close()
         else:
             open_windows.add('projects_window')
-            self.projects_window = ProjectsWindow(self.app, self.token, self.parent)
-            self.parent.mdi.addSubWindow(self.projects_window)
-            self.projects_window.show()
+            self.parent.projects_window = ProjectsWindow(self.app, self.token, self.parent)
+            self.parent.mdi.addSubWindow(self.parent.projects_window)
+            self.parent.projects_window.show()
 
