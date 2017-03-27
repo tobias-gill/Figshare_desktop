@@ -9,8 +9,6 @@ from PyQt5.QtWidgets import (QMdiSubWindow, QLabel, QPushButton, QToolTip, QMess
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QObject)
 
-from ..window_tracking.window_tracking import open_windows
-
 from ..formatting.formatting import (scaling_ratio, checkable_button, search_bar)
 from Figshare_desktop.projects_windows.new_project_window import NewProjectWindow
 from Figshare_desktop.projects_windows.project_info_window import ProjectInfoWindow
@@ -34,6 +32,8 @@ class ProjectsWindow(QMdiSubWindow):
         self.app = app
         self.token = OAuth_token
         self.parent = parent
+
+        self.open_windows = self.parent.open_windows
 
         self.initFig()
         self.initUI()
@@ -179,7 +179,6 @@ class ProjectsWindow(QMdiSubWindow):
         i = 0
 
         for project_pos in range(start, finish):
-            print(project_pos)
             title = self.project_list[project_pos]['title']
             pub_date = self.project_list[project_pos]['published_date']
             id = self.project_list[project_pos]['id']
@@ -294,13 +293,13 @@ class ProjectsWindow(QMdiSubWindow):
         """
         Called when the create new project button is pressed
         """
-        if 'new_project_window' in open_windows:
-            open_windows.remove('new_project_window')
-            self.new_project_window.close()
+        if 'new_project_window' in self.open_windows:
+            self.open_windows.remove('new_project_window')
+            self.parent.new_project_window.close()
         else:
-            open_windows.remove('projects_window')
+            self.open_windows.remove('projects_window')
             self.close()
-            open_windows.add('new_project_window')
+            self.open_windows.add('new_project_window')
             self.parent.new_project_window = NewProjectWindow(self.app, self.token, self.parent)
             self.parent.mdi.addSubWindow(self.parent.new_project_window)
             self.parent.new_project_window.show()

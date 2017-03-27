@@ -71,6 +71,52 @@ def button_font(app):
 
     return font
 
+def label_font(app):
+    """
+    Returns a QFont object for buttons
+    :param app: QApplication object
+    :return: QFont object
+    """
+
+    # Gets window and font ratios
+    screen_ratio, font_ratio = scaling_ratio(app)
+
+    # Reference font size
+    ref_fontsize = 12
+
+    # Scale font size
+    fontsize = font_ratio * ref_fontsize
+
+    # Create and modify QFont object
+    font = QFont('SansSerif')
+    font.setBold(True)
+    font.setPointSize(fontsize)
+
+    return font
+
+def edit_font(app):
+    """
+    Returns a QFont object for buttons
+    :param app: QApplication object
+    :return: QFont object
+    """
+
+    # Gets window and font ratios
+    screen_ratio, font_ratio = scaling_ratio(app)
+
+    # Reference font size
+    ref_fontsize = 10
+
+    # Scale font size
+    fontsize = font_ratio * ref_fontsize
+
+    # Create and modify QFont object
+    font = QFont('SansSerif')
+    font.setBold(False)
+    font.setPointSize(fontsize)
+
+    return font
+
 def search_font(app):
     """
     Returns a QFont object for search bars
@@ -114,7 +160,9 @@ def press_button(app, button):
     :param button: QPushButton
     :return:
     """
-    button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    size_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+    size_policy.setHorizontalStretch(0)
+    button.setSizePolicy(size_policy)
     button.setFont(button_font(app))
 
 
@@ -128,3 +176,27 @@ def search_bar(app, lineedit):
     lineedit.sizeHint()
     lineedit.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
     lineedit.setFont(search_font(app))
+
+
+def grid_label(app, label):
+    """
+    Formats a QLabel
+    :param app: QApplication
+    :param label: QLabel
+    :return:
+    """
+    size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    label.setSizePolicy(size_policy)
+    label.setFont(label_font(app))
+
+
+def grid_edit(app, edit):
+    """
+    Formats a QLineEdit
+    :param app: QApplication
+    :param edit: QLineEdit, or QTextEdit
+    :return:
+    """
+    size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    edit.setSizePolicy(size_policy)
+    edit.setFont(edit_font(app))

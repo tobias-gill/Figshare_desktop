@@ -37,6 +37,10 @@ class MainWindow(QMainWindow):
 
         self.section_geom = 'test'
 
+        self.open_windows = set()
+
+        self.section_window = None
+
         self.projects_window = None
         self.new_project_window = None
 

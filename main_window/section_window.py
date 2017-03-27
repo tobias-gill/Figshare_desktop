@@ -9,8 +9,6 @@ from PyQt5.QtWidgets import (QWidget, QPushButton, QToolTip, QMessageBox, QMainW
 from PyQt5.QtGui import (QIcon, QFont, QKeySequence)
 from PyQt5.QtCore import (Qt)
 
-from ..window_tracking.window_tracking import open_windows
-
 from ..formatting.formatting import scaling_ratio
 from ..formatting.formatting import checkable_button
 
@@ -43,6 +41,8 @@ class sectionWindow(QMdiSubWindow):
         self.app = app
         self.token = OAuth_token
         self.parent = parent
+
+        self.open_windows = self.parent.open_windows
 
         self.initUI()
 
@@ -114,14 +114,14 @@ class sectionWindow(QMdiSubWindow):
         """
 
         """
-        if 'projects_window' in open_windows:
-            open_windows.remove('projects_window')
+        if 'projects_window' in self.open_windows:
+            self.open_windows.remove('projects_window')
             self.parent.projects_window.close()
-        elif 'new_project_window' in open_windows:
-            open_windows.remove('new_project_window')
+        elif 'new_project_window' in self.open_windows:
+            self.open_windows.remove('new_project_window')
             self.parent.new_project_window.close()
         else:
-            open_windows.add('projects_window')
+            self.open_windows.add('projects_window')
             self.parent.projects_window = ProjectsWindow(self.app, self.token, self.parent)
             self.parent.mdi.addSubWindow(self.parent.projects_window)
             self.parent.projects_window.show()
