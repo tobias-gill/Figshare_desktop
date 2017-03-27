@@ -200,12 +200,18 @@ class NewProjectWindow(QMdiSubWindow):
             if group_id not in available_groups:
                 raise ValueError('Not a valid group id.')
             else:
-                self.create_project(title, description, funding, group_id)
-                self.on_cancel_pressed()
+                project_info = self.create_project(title, description, funding, group_id)
+                msgBox = QMessageBox()
+                msgBox.setIcon(QMessageBox.Information)
+                msgBox.setText("New Project Created\n{}".format(project_info['title']))
+                msgBox.setStandardButtons(QMessageBox.Ok)
+                msgBox.buttonClicked.connect(lambda: self.on_msgbtn_pressed(msgBox, exit_parent=True))
+                msgBox.show()
 
         except ValueError as err:
             err_args = err.args
             msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Critical)
             msgBox.setText(err_args[0])
             msgBox.setStandardButtons(QMessageBox.Ok)
             msgBox.buttonClicked.connect(lambda: self.on_msgbtn_pressed(msgBox))
@@ -214,6 +220,7 @@ class NewProjectWindow(QMdiSubWindow):
         except TypeError as err:
             err_args = err.args
             msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Critical)
             msgBox.setText(err_args[0])
             msgBox.setStandardButtons(QMessageBox.Ok)
             msgBox.buttonClicked.connect(lambda: self.on_msgbtn_pressed(msgBox))
@@ -237,12 +244,14 @@ class NewProjectWindow(QMdiSubWindow):
         self.close()
         self.parent.section_window.on_projects_btn_pressed()
 
-    def on_msgbtn_pressed(self, box):
+    def on_msgbtn_pressed(self, box, exit_parent=None):
         """
         Called when an error message button is pressed
         :return:
         """
         box.close()
+        if exit_parent:
+            self.on_cancel_pressed()
 
     #####
     # Figshare API Interface Actions
