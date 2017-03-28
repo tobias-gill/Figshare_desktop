@@ -5,7 +5,7 @@
 import os
 import math
 from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QMessageBox, QMainWindow, QMdiSubWindow,
-                             QTextEdit, QGridLayout, QHBoxLayout, QVBoxLayout, QSizePolicy, QScrollBar)
+                             QTextEdit, QGridLayout, QHBoxLayout, QVBoxLayout, QSizePolicy, QFrame)
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QPoint)
 
@@ -65,10 +65,17 @@ class ProjectInfoWindow(QMdiSubWindow):
         # Add the title to the vertical layout
         self.vbox.addLayout(self.title_hbox())
 
-        # Add the Open/Close Articles Button to the horizontal layout
-        self.hbox.addWidget(self.articles_button())
+        # Create a vertical layout for the save and articles buttons
+        self.buttons_layout = QVBoxLayout()
+        self.buttons_layout.addWidget(self.save_changes_button())
+        self.buttons_layout.addWidget(self.articles_button())
+
+        # Add the Buttons Layout to the horizontal layout
+        self.hbox.addLayout(self.buttons_layout)
         # Add the description layout to the horizontal layout
         self.hbox.addLayout(self.description_vbox())
+        # Add a separator to the horizontal layout
+        self.hbox.addWidget(self.seperator())
         # Add the project info grid to the horizontal layout
         self.hbox.addLayout(self.info_grid())
 
@@ -100,7 +107,7 @@ class ProjectInfoWindow(QMdiSubWindow):
         x0 = section_geom.x() + section_geom.width()
         y0 = section_geom.y()
         w = geom.width() - x0
-        h = ((geom.height() - y0) / 6)
+        h = ((geom.height() - y0) / 3)
         self.setGeometry(x0, y0, w, h)
         # Remove frame from the window
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -115,9 +122,31 @@ class ProjectInfoWindow(QMdiSubWindow):
         :return: QPushButton
         """
         btn = QPushButton()
-        btn.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/Pencil-52.png')))
+        btn.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/Magazine-50.png')))
         checkable_button(self.app, btn)
+        btn.setMaximumWidth(self.geometry().width() / 20)
+        btn.setMinimumWidth(self.geometry().width() / 20)
+        btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+
+        btn.setToolTip('Open Project Articles Window')
+        #btn.setToolTipDuration(1)
         #btn.clicked[bool].connect()
+        return btn
+
+    def save_changes_button(self):
+        """
+        Creates a save changes button to push edits to Figshare
+        :return: QMessageWindow
+        """
+        btn = QPushButton()
+        btn.setIcon(QIcon(os.path.abspath(__file__ + '/../../img/figshare_upload.png')))
+        btn.setMaximumWidth(self.geometry().width() / 20)
+        btn.setMinimumWidth(self.geometry().width() / 20)
+        btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+
+        btn.setToolTip('Save Changes to Figshare')
+        #btn.setToolTipDuration(1)
+        #btn.pressed.connect()
         return btn
 
     def create_label(self, label):
@@ -162,8 +191,12 @@ class ProjectInfoWindow(QMdiSubWindow):
         # Create Edit Button
         edit_btn = QPushButton()
         edit_btn.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/Pencil-52.png')))
+        edit_btn.setMaximumWidth(self.geometry().width() / 50)
+        edit_btn.setMaximumHeight(self.geometry().width() / 50)
         checkable_button(self.app, edit_btn)
-        #edit_btn.clicked[bool].connect()
+
+        # Add an action to the edit button
+        edit_btn.clicked[bool].connect(lambda: self.on_edit_pressed(title_edit))
 
         # Create Layout
         hbox = QHBoxLayout()
@@ -179,20 +212,26 @@ class ProjectInfoWindow(QMdiSubWindow):
         """
 
         # Create the Description Label
-        lbl = QLabel('Description')
-        grid_label(self.app, lbl)
+        lbl = self.create_label('Description')
+        lbl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         # Create Edit Button
         edit_btn = QPushButton()
         edit_btn.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/Pencil-52.png')))
+        edit_btn.setMaximumWidth(self.geometry().width() / 50)
+        edit_btn.setMaximumHeight(self.geometry().width() / 50)
         checkable_button(self.app, edit_btn)
-        # edit_btn.clicked[bool].connect()
 
         # Create TextEdit
         description = self.project_info['description']
         text_edit = QTextEdit()
+        if description is not None and description != '':
+            text_edit.setText(description)
         grid_edit(self.app, text_edit)
         text_edit.setEnabled(False)
+
+        # Add an action to the edit button
+        edit_btn.clicked[bool].connect(lambda: self.on_edit_pressed(text_edit))
 
         # Create a horizontal layout for the label and edit button
         hbox = QHBoxLayout()
@@ -205,6 +244,17 @@ class ProjectInfoWindow(QMdiSubWindow):
         vbox.addWidget(text_edit)
 
         return vbox
+
+    def seperator(self):
+        """
+        Creates a vertical sepearator.
+        :return: QFrame
+        """
+
+        sep = QFrame()
+        sep.setFrameShape(QFrame.VLine)
+        sep.setFrameShadow(QFrame.Sunken)
+        return sep
 
 
     def info_grid(self):
@@ -254,10 +304,98 @@ class ProjectInfoWindow(QMdiSubWindow):
         pub_field.setText(published_date)
 
         # Collaborators Field
+        collaborators = self.project_info['collaborators']
         col_field = QButtonField()
+        if collaborators is not None:
+            for col in collaborators:
+                name = col['name']
+                user_id = col['user_id']
+                tag = "{}: {}".format(name, user_id)
+                col_field.add_tag(tag)
+
+        # Funding Field
+        funding = self.project_info['funding']
+        funding_field = QButtonField()
+        if funding != '':
+            for funder in funding.split(';'):
+                funding_field.add_tag(funder)
+
+        # Group Field
+        group_id = self.project_info['group_id']
+        group_field = QLabel()
+        grid_label(self.app, group_field)
+        if group_id != 0:
+            group_field.setText(str(group_id))
+        else:
+            group_field.setText('Private Project')
+
+        # Storage Field
+        quota_text = self.get_quota_percentage()
+        storage_field = QLabel(quota_text)
+        grid_label(self.app, storage_field)
+
 
         # Create and Populate grid
         grid = QGridLayout()
-        grid.addWidget(col_field)
+
+        grid.addWidget(id_lbl, 0, 0)
+        grid.addWidget(id_field, 0, 1)
+
+        grid.addWidget(pub_lbl, 1, 0)
+        grid.addWidget(pub_field, 1, 1)
+
+        grid.addWidget(col_lbl, 2, 0)
+        grid.addWidget(col_field, 2, 1)
+
+        grid.addWidget(fund_lbl, 3, 0)
+        grid.addWidget(funding_field, 3, 1)
+
+        grid.addWidget(group_lbl, 4, 0)
+        grid.addWidget(group_lbl, 4, 1)
+
+        grid.addWidget(stor_lbl, 5, 0)
+        grid.addWidget(storage_field, 5, 1)
 
         return grid
+
+    def get_quota_percentage(self):
+        """
+        Returns a string containg the current percentage of the figshare quota used for a given project
+        :return:
+        """
+
+        group_id = self.project_info['group_id']
+        quota = self.project_info['quota']
+        if group_id != 0:
+            used_quota = self.project_info['used_quota_public']
+        else:
+            used_quota = self.project_info['used_quota_private']
+
+        if quota != 0:
+            quota_percentage = round(100 * used_quota / quota, 2)
+        else:
+            quota_percentage = 0
+
+        quota_gb = round(quota / (10**9), 1)
+
+        return "{} % of {} GB".format(quota_percentage, quota_gb)
+
+    #####
+    # Widget Actions
+    #####
+
+    def on_edit_pressed(self, edit_field):
+        """
+        Called when a edit button is pressed. This will activate or deactivate the passed edit field
+        :param edit_field: QLineEdit or QTextEdit
+        :return:
+        """
+
+        if edit_field.isEnabled():
+            edit_field.setEnabled(False)
+        else:
+            edit_field.setEnabled(True)
+
+    #####
+    # Figshare API Interface Actions
+    #####

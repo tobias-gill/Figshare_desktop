@@ -101,7 +101,7 @@ class QButtonField(QWidget):
         """
 
         btn = QTagButton(label, self.tags)
-        btn.setToolTipDuration(1)
+        self.tags.add(label)
         self.tag_box.addWidget(btn)
 
     def create_linedit(self):
@@ -130,7 +130,6 @@ class QButtonField(QWidget):
 
         if text != '' and text not in self.tags:
             self.add_tag(text)
-            self.tags.add(text)
             edit.clear()
         elif text in self.tags:
             edit.clear()
