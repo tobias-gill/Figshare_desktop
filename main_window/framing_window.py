@@ -39,10 +39,13 @@ class MainWindow(QMainWindow):
 
         self.open_windows = set()
 
+        # Menu window
         self.section_window = None
 
+        # Projects Windows
         self.projects_window = None
         self.new_project_window = None
+        self.project_info_window = None
 
         self.initUI()
 

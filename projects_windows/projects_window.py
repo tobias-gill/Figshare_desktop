@@ -76,16 +76,13 @@ class ProjectsWindow(QMdiSubWindow):
         self.setWidget(window_widget)
 
     #####
-    # Window Formatting and Actions
+    # Window Formatting
     #####
 
     def format_window(self):
         """
         Formats the Projects window
         """
-        # Get the scaling ratios for the window size and fonts
-        w_scale, f_scale = scaling_ratio(self.app)
-
         # Gets the QRect of the main window
         geom = self.parent.geometry()
         # Gets the Qrect of the sections window
@@ -99,12 +96,6 @@ class ProjectsWindow(QMdiSubWindow):
         self.setGeometry(x0, y0, w, h)
         # Remove frame from projects window
         self.setWindowFlags(Qt.FramelessWindowHint)
-
-    def closeEvent(self):
-        """
-        Ensures that the project info window is closed if it is open
-        """
-        pass
 
     #####
     # Window Widgets
@@ -121,7 +112,7 @@ class ProjectsWindow(QMdiSubWindow):
         s_bar.valueChanged.connect(self.slider_val)
         return s_bar
 
-    def create_proj_thumb(self, title, published_date, id):
+    def create_proj_thumb(self, title, published_date, project_id):
         """
         Creates a large pushbutton for a project
         :param title: string. Project title
@@ -165,7 +156,7 @@ class ProjectsWindow(QMdiSubWindow):
         btn = QPushButton(self)
         checkable_button(self.app, btn)
         btn.setLayout(lbl_box)
-        #btn.clicked[bool].connect()
+        btn.clicked[bool].connect(lambda: self.on_project_pressed(project_id))
 
         self.project_buttons_box.addWidget(btn)
 
@@ -177,14 +168,13 @@ class ProjectsWindow(QMdiSubWindow):
         """
         self.buttons = {}
         i = 0
-
         for project_pos in range(start, finish):
             title = self.project_list[project_pos]['title']
             pub_date = self.project_list[project_pos]['published_date']
-            id = self.project_list[project_pos]['id']
-            self.buttons[str(id)] = i
+            project_id = self.project_list[project_pos]['id']
+            self.create_proj_thumb(title, pub_date, project_id)
+            self.buttons[project_id] = self.project_buttons_box.itemAt(i).widget()
             i += 1
-            self.create_proj_thumb(title, pub_date, id)
 
     def management_buttons(self):
         """
@@ -304,6 +294,30 @@ class ProjectsWindow(QMdiSubWindow):
             self.parent.mdi.addSubWindow(self.parent.new_project_window)
             self.parent.new_project_window.show()
 
+    def on_project_pressed(self, project_id):
+        """
+        Called when a project is clicked.
+        :return:
+        """
+        if 'project_info_window' in self.open_windows:
+            open_proj = self.parent.project_info_window.project_id
+            if open_proj != project_id:
+                if open_proj in self.buttons:
+                    if self.buttons[open_proj].isChecked():
+                        self.buttons[open_proj].toggle()
+                self.parent.project_info_window.close()
+                self.parent.project_info_window = ProjectInfoWindow(self.app, self.token, self.parent, project_id)
+                self.parent.mdi.addSubWindow(self.parent.project_info_window)
+                self.parent.project_info_window.show()
+
+            else:
+                self.open_windows.remove('project_info_window')
+                self.parent.project_info_window.close()
+        else:
+            self.open_windows.add('project_info_window')
+            self.parent.project_info_window = ProjectInfoWindow(self.app, self.token, self.parent, project_id)
+            self.parent.mdi.addSubWindow(self.parent.project_info_window)
+            self.parent.project_info_window.show()
 
     #####
     # Figshare API Interface Calls
