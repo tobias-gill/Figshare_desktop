@@ -4,6 +4,8 @@
 
 import os
 import math
+from requests import HTTPError
+
 from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QMessageBox, QMainWindow, QMdiSubWindow,
                              QTextEdit, QGridLayout, QHBoxLayout, QVBoxLayout, QSizePolicy, QFrame)
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
@@ -146,7 +148,7 @@ class ProjectInfoWindow(QMdiSubWindow):
 
         btn.setToolTip('Save Changes to Figshare')
         #btn.setToolTipDuration(1)
-        #btn.pressed.connect()
+        btn.pressed.connect(self.on_save_pressed)
         return btn
 
     def create_label(self, label):
@@ -187,6 +189,7 @@ class ProjectInfoWindow(QMdiSubWindow):
         title_edit = QLineEdit(title)
         grid_label(self.app, title_edit)
         title_edit.setEnabled(False)
+        self.title_wid = title_edit
 
         # Create Edit Button
         edit_btn = QPushButton()
@@ -229,6 +232,7 @@ class ProjectInfoWindow(QMdiSubWindow):
             text_edit.setText(description)
         grid_edit(self.app, text_edit)
         text_edit.setEnabled(False)
+        self.desc_wid = text_edit
 
         # Add an action to the edit button
         edit_btn.clicked[bool].connect(lambda: self.on_edit_pressed(text_edit))
@@ -312,13 +316,16 @@ class ProjectInfoWindow(QMdiSubWindow):
                 user_id = col['user_id']
                 tag = "{}: {}".format(name, user_id)
                 col_field.add_tag(tag)
+        self.col_wid = col_field
 
         # Funding Field
         funding = self.project_info['funding']
         funding_field = QButtonField()
         if funding != '':
-            for funder in funding.split(';'):
-                funding_field.add_tag(funder)
+            for funder in funding.split(':_:'):
+                if funder != '':
+                    funding_field.add_tag(funder)
+        self.fund_wid = funding_field
 
         # Group Field
         group_id = self.project_info['group_id']
@@ -396,6 +403,135 @@ class ProjectInfoWindow(QMdiSubWindow):
         else:
             edit_field.setEnabled(True)
 
+    def on_save_pressed(self):
+        """
+        Called when the save button is pressed.
+        :return:
+        """
+        # Empty dictionary to hold update information
+        update_dict = {}
+        collaborators_list = None
+
+        # Check to see if there has been a change to the title
+        old_title = self.project_info['title']
+        new_title = self.title_wid.text()
+        if old_title != new_title:
+            update_dict['title'] = new_title
+
+        # Check to see if there has been a change to the description
+        old_desc = self.project_info['description']
+        new_desc = self.desc_wid.toPlainText()
+        if old_desc != new_desc:
+            update_dict['description'] = new_desc
+
+        # Check to see if there has been a change to the collaborators
+        old_col = self.project_info['collaborators']
+        col_tags = self.col_wid.get_tags()
+        new_col = []
+        for tag in col_tags:
+            value = tag.split(':')
+            if len(value) > 1:
+                key, value = tag.split(':')
+            else:
+                value = value[0]
+            if value[0] == ' ':
+                value = value[1:]
+            try:
+                value = int(value)
+                key = 'user_id'
+            except:
+                key = 'email'
+            new_col.append({key: value})
+        if old_col != new_col:
+            collaborators_list = new_col
+
+        # Check to see if there has been a change to the funding
+        old_fund = self.project_info['funding']
+        fund_tags = self.fund_wid.get_tags()
+        new_fund = ''
+        for tag in fund_tags:
+            new_fund += ':_:{}'.format(tag)
+        if old_fund != new_fund:
+            update_dict['funding'] = new_fund
+
+        # Call Figshare API Interface functions
+        successful = self.update_project(self.project_id, self.token, update_dict)
+
+        if collaborators_list is not None:
+            print('need to update collaborators')
+            successful = self.invite_collaborators(self.project_id, self.token, collaborators_list)
+
+
+        if successful:
+            resp = QMessageBox.information(self, 'Update Confirmation', 'Project successfully updated',
+                                           QMessageBox.Ok)
+
+            if resp == QMessageBox.Ok:
+                self.reopen_project_info()
+            else:
+                self.reopen_project_info()
+        else:
+            resp = QMessageBox.warning(self, 'Update Confirmation',
+                                       'Error occurred.\nProject may not have updated.\n{}'.format(successful.args),
+                                       QMessageBox.Ok)
+
+            if resp == QMessageBox.Ok:
+                self.reopen_project_info()
+            else:
+                self.reopen_project_info()
+
+    def reopen_project_info(self):
+        """
+        Closes and reopens the current project info window.
+        :return:
+        """
+        for i in range(2):
+            self.parent.projects_window.on_project_pressed(self.project_id)
+
     #####
     # Figshare API Interface Actions
     #####
+
+    def update_project(self, project_id, token, update_dict):
+        """
+        Uploads changes to a figshare project
+        :param project_id: int. Figshare project id number
+        :param token: OAuth token
+        :param update_dict: dict. Dictionary holding named arguments to pass to Projects.update()
+        :return:
+        """
+        try:
+            projects = Projects(token)
+            info = projects.update(project_id, **update_dict)
+            return True
+        except TypeError as err:
+            return err
+        except ValueError as err:
+            return err
+        except HTTPError as err:
+            return err
+
+    def invite_collaborators(self, project_id, token, collaborators):
+        """
+
+        :param project_id:
+        :param token:
+        :param collaborators:
+        :return:
+        """
+        for col in collaborators:
+            col['role_name'] = 'collaborator'
+
+        try:
+            projects = Projects(token)
+            for col in collaborators:
+                info = projects.invite(project_id, col)
+                print(info)
+                return True
+        except TypeError as err:
+            return err
+        except ValueError as err:
+            return err
+        except HTTPError as err:
+            print(err.args)
+            return err

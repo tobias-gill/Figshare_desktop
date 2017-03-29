@@ -114,7 +114,6 @@ class sectionWindow(QMdiSubWindow):
         """
 
         """
-        print(self.open_windows)
         if 'projects_window' in self.open_windows:
             self.open_windows.remove('projects_window')
             self.parent.projects_window.close()
