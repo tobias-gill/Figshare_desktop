@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import (QMdiSubWindow, QLabel, QPushButton, QTextEdit, QGri
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QObject)
 
+from Figshare_desktop.custom_widgets.button_field import QButtonField
+
 from ..formatting.formatting import (scaling_ratio, press_button, grid_label, label_font, edit_font, grid_edit)
 
 from figshare_interface import (Projects, Groups)
@@ -67,7 +69,7 @@ class NewProjectWindow(QMdiSubWindow):
         x0 = section_geom.x() + section_geom.width()
         y0 = section_geom.y()
         w = geom.width() - x0
-        h = ((geom.height() - y0) / 6)
+        h = ((geom.height() - y0) / 3)
         self.setGeometry(x0, y0, w, h)
         # Remove frame from projects window
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -157,7 +159,7 @@ class NewProjectWindow(QMdiSubWindow):
 
         # Funding
         funding_lbl, self.funding_field = self.create_lineedit('Funding')
-        self.funding_field.setPlaceholderText('Enter details of funding for this project.')
+        self.funding_field = QButtonField()
 
         # Group
         group_lbl, self.group_field = self.create_lineedit('Group ID')
@@ -192,7 +194,11 @@ class NewProjectWindow(QMdiSubWindow):
         """
         title = self.title_field.text()
         description = self.description_field.toPlainText()
-        funding = self.funding_field.text()
+        funding = self.funding_field.get_tags()
+        fund_text = ''
+        for fund in funding:
+            fund_text += ':_:{}'.format(fund)
+
         try:
             group_id = self.group_field.text()
             group_id = int(group_id)
@@ -200,7 +206,7 @@ class NewProjectWindow(QMdiSubWindow):
             if group_id not in available_groups:
                 raise ValueError('Not a valid group id.')
             else:
-                project_info = self.create_project(title, description, funding, group_id)
+                project_info = self.create_project(title, description, fund_text, group_id)
                 msgBox = QMessageBox()
                 msgBox.setIcon(QMessageBox.Information)
                 msgBox.setText("New Project Created\n{}".format(project_info['title']))

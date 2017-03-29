@@ -464,7 +464,18 @@ class ProjectInfoWindow(QMdiSubWindow):
 
         if collaborators_list is not None:
             print('need to update collaborators')
-            successful = self.invite_collaborators(self.project_id, self.token, collaborators_list)
+            col_successful = self.invite_collaborators(self.project_id, self.token, collaborators_list)
+
+            if col_successful:
+                resp = QMessageBox.information(self, 'Collaborators Invitation Confirmation',
+                                               'Collaborators Invited.\nCollaborators will not show up in project until'
+                                               ' they have accepted the invitation on the figshare website.',
+                                               QMessageBox.Ok)
+
+            else:
+                resp = QMessageBox.warning(self, 'Collaborators Invitation Confirmation',
+                                           'Error occurred.\n{}'.format(col_successful.args),
+                                           QMessageBox.Ok)
 
         if successful is True:
             resp = QMessageBox.information(self, 'Update Confirmation', 'Project successfully updated',
@@ -517,10 +528,10 @@ class ProjectInfoWindow(QMdiSubWindow):
 
     def invite_collaborators(self, project_id, token, collaborators):
         """
-
-        :param project_id:
-        :param token:
-        :param collaborators:
+        Invites collaborators to a figshare project
+        :param project_id: int. Figshare project id number
+        :param token: OAuth token
+        :param collaborators: List of Dict. Containing either user ids or email addresses
         :return:
         """
         for col in collaborators:

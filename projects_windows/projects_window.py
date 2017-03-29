@@ -54,7 +54,10 @@ class ProjectsWindow(QMdiSubWindow):
         self.vbox = QVBoxLayout()
 
         # Add the Projects button to the vertical box layout
-        self.create_project_bar(0, 4)
+        init_finish = len(self.project_list)
+        if init_finish > 4:
+            init_finish = 4
+        self.create_project_bar(0, init_finish)
         self.vbox.addLayout(self.project_buttons_box)
 
         # Add the scroll bar to the vertical box layout
