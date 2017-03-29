@@ -35,8 +35,6 @@ class MainWindow(QMainWindow):
         self.app = app
         self.token = OAuth_token
 
-        self.section_geom = 'test'
-
         self.open_windows = set()
 
         # Menu window

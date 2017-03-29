@@ -4,7 +4,7 @@
 
 import os
 import math
-from PyQt5.QtWidgets import (QMdiSubWindow, QLabel, QPushButton, QToolTip, QMessageBox, QMainWindow,
+from PyQt5.QtWidgets import (QMdiSubWindow, QLabel, QPushButton, QMessageBox, QMainWindow,
                              QWidget, QLineEdit, QHBoxLayout, QVBoxLayout, QSizePolicy, QScrollBar)
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QObject)
@@ -190,12 +190,21 @@ class ProjectsWindow(QMdiSubWindow):
         np_btn.setToolTipDuration(1)
         np_btn.pressed.connect(self.on_projects_btn_pressed)
 
-        # Create layout to hold buttons
-        vbox = QVBoxLayout()
-        # Add Buttons to layout
-        vbox.addWidget(np_btn)
+        # Create Delete Project Button
+        del_btn = QPushButton()
+        del_btn.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+        del_btn.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/del_folder.png')))
+        del_btn.setToolTip('Delete Selected Project')
+        del_btn.setToolTipDuration(1)
+        del_btn.pressed.connect(self.on_delete_btn_pressed)
 
-        return vbox
+        # Create layout to hold buttons
+        hbox = QHBoxLayout()
+        # Add Buttons to layout
+        hbox.addWidget(np_btn)
+        hbox.addWidget(del_btn)
+
+        return hbox
 
     def search_bar(self):
         """
@@ -319,6 +328,45 @@ class ProjectsWindow(QMdiSubWindow):
             self.parent.mdi.addSubWindow(self.parent.project_info_window)
             self.parent.project_info_window.show()
 
+    def on_delete_btn_pressed(self):
+        """
+        Called when the project delete button is pressed/
+        :return:
+        """
+        open_proj = self.parent.project_info_window.project_id
+        project_title = self.parent.project_info_window.project_info['title']
+
+        msg = "Are you sure you want to delete Figshare Project: {}".format(project_title)
+        msg_box = QMessageBox.question(self, 'Message', msg, QMessageBox.Yes, QMessageBox.No)
+
+        if msg_box == QMessageBox.Yes:
+            successful = self.delete_project(self.token, open_proj)
+
+            if successful:
+                con_reply = QMessageBox.information(self, 'Deletion Confirmation', 'Project successfully deleted',
+                                                    QMessageBox.Ok)
+                if con_reply == QMessageBox.Ok:
+                    self.reopen_projects()
+                else:
+                    self.reopen_projects()
+            else:
+                con_reply = QMessageBox.warning(self, 'Deletion Confirmation',
+                                                'Unknown error occurred.\n Project may not have been deleted.',
+                                                QMessageBox.Ok)
+                if con_reply == QMessageBox.Ok:
+                    self.reopen_projects()
+                else:
+                    self.reopen_projects()
+
+    def reopen_projects(self):
+        """
+        Called to open and close the projects window.
+        :return:
+        """
+        for i in range(2):
+            self.parent.section_window.on_projects_btn_pressed()
+
+
     #####
     # Figshare API Interface Calls
     #####
@@ -346,3 +394,18 @@ class ProjectsWindow(QMdiSubWindow):
             result = projects.get_list()
 
         return result
+
+    def delete_project(self, token, project_id):
+        """
+        Deletes the given project from Figshare
+        :param token:
+        :param project_id: Int. Figshare project ID number
+        :return:
+        """
+        projects = Projects(token)
+        try:
+            projects.delete(project_id, safe=False)
+            return True
+        except:
+            return False
+
