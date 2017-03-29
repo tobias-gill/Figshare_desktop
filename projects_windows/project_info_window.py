@@ -410,7 +410,7 @@ class ProjectInfoWindow(QMdiSubWindow):
         """
         # Empty dictionary to hold update information
         update_dict = {}
-        collaborators_list = None
+        collaborators_list = []
 
         # Check to see if there has been a change to the title
         old_title = self.project_info['title']
@@ -426,6 +426,7 @@ class ProjectInfoWindow(QMdiSubWindow):
 
         # Check to see if there has been a change to the collaborators
         old_col = self.project_info['collaborators']
+        old_col_ids = [col['user_id'] for col in old_col]
         col_tags = self.col_wid.get_tags()
         new_col = []
         for tag in col_tags:
@@ -442,8 +443,12 @@ class ProjectInfoWindow(QMdiSubWindow):
             except:
                 key = 'email'
             new_col.append({key: value})
-        if old_col != new_col:
-            collaborators_list = new_col
+        for col in new_col:
+            if 'user_id' in col:
+                if col['user_id'] not in old_col_ids:
+                    collaborators_list.append(col)
+            elif 'email' in col:
+                collaborators_list.append(col)
 
         # Check to see if there has been a change to the funding
         old_fund = self.project_info['funding']
@@ -461,8 +466,7 @@ class ProjectInfoWindow(QMdiSubWindow):
             print('need to update collaborators')
             successful = self.invite_collaborators(self.project_id, self.token, collaborators_list)
 
-
-        if successful:
+        if successful is True:
             resp = QMessageBox.information(self, 'Update Confirmation', 'Project successfully updated',
                                            QMessageBox.Ok)
 
@@ -527,7 +531,7 @@ class ProjectInfoWindow(QMdiSubWindow):
             for col in collaborators:
                 info = projects.invite(project_id, col)
                 print(info)
-                return True
+            return True
         except TypeError as err:
             return err
         except ValueError as err:
