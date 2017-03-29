@@ -132,7 +132,7 @@ class ProjectInfoWindow(QMdiSubWindow):
 
         btn.setToolTip('Open Project Articles Window')
         #btn.setToolTipDuration(1)
-        #btn.clicked[bool].connect()
+        btn.clicked[bool].connect(self.on_articles_pressed)
         return btn
 
     def save_changes_button(self):
@@ -390,6 +390,22 @@ class ProjectInfoWindow(QMdiSubWindow):
     #####
     # Widget Actions
     #####
+
+    def on_articles_pressed(self):
+        """
+        Called when the articles button is pressed. This will open or close the articles window.
+        :return:
+        """
+        if 'project_articles_window' in self.open_windows:
+            self.open_windows.remove('project_articles_window')
+            self.parent.project_articles_window.close()
+        else:
+            self.open_windows.add('project_articles_window')
+            self.parent.project_articles_window = ProjectsArticlesWindow(self.app, self.token, self.parent,
+                                                                         self.project_id)
+            self.parent.mdi.addSubWindow(self.parent.project_articles_window)
+            self.parent.project_articles_window.show()
+
 
     def on_edit_pressed(self, edit_field):
         """

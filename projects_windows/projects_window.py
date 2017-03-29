@@ -325,6 +325,9 @@ class ProjectsWindow(QMdiSubWindow):
             else:
                 self.open_windows.remove('project_info_window')
                 self.parent.project_info_window.close()
+            if 'project_articles_window' in self.open_windows:
+                self.open_windows.remove('project_articles_window')
+                self.parent.project_articles_window.close()
         else:
             self.open_windows.add('project_info_window')
             self.parent.project_info_window = ProjectInfoWindow(self.app, self.token, self.parent, project_id)

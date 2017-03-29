@@ -122,6 +122,10 @@ class sectionWindow(QMdiSubWindow):
                 self.open_windows.remove('project_info_window')
                 self.parent.project_info_window.close()
 
+            if 'project_articles_window' in self.open_windows:
+                self.open_windows.remove('project_articles_window')
+                self.parent.project_articles_window.close()
+
         elif 'new_project_window' in self.open_windows:
             self.open_windows.remove('new_project_window')
             self.parent.new_project_window.close()
