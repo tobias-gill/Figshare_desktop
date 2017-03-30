@@ -2,15 +2,12 @@
 
 """
 
-import os
-import sys
-from PyQt5.QtWidgets import (QWidget, QPushButton, QToolTip, QMessageBox, QMainWindow, QApplication, QMdiArea,
-                             QAction, qApp, QHBoxLayout, QVBoxLayout, QSizePolicy, QShortcut, QMdiSubWindow, QTextEdit)
-from PyQt5.QtGui import (QIcon, QFont, QKeySequence)
+
+from PyQt5.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QMdiSubWindow)
 from PyQt5.QtCore import (Qt)
 
-from ..formatting.formatting import scaling_ratio
-from ..formatting.formatting import checkable_button
+from Figshare_desktop.formatting.formatting import scaling_ratio
+from Figshare_desktop.formatting.formatting import checkable_button
 
 from Figshare_desktop.projects_windows.projects_window import ProjectsWindow
 from Figshare_desktop.data_window.data_window import DataWindow
@@ -27,7 +24,7 @@ __status__ = "Development"
 
 class sectionWindow(QMdiSubWindow):
     """
-
+    Creates the beginning window from which the different Figshare structures can be navigated to
     """
 
     def __init__(self, app, OAuth_token, parent):
@@ -35,6 +32,7 @@ class sectionWindow(QMdiSubWindow):
 
         :param app: QApplication object
         :param OAuth_token: Figshare OAuth token
+        :param parent: QMDI object that is the overall parent of the application
         """
         super().__init__()
 
@@ -112,24 +110,29 @@ class sectionWindow(QMdiSubWindow):
 
     def on_projects_btn_pressed(self):
         """
-
+        Called when the projects button is pressed. Is also called after some project information edits.
         """
+        # Check to see if the projects window is already open
         if 'projects_window' in self.open_windows:
             self.open_windows.remove('projects_window')
             self.parent.projects_window.close()
 
+            # Check to see if a project information window is open
             if 'project_info_window' in self.open_windows:
                 self.open_windows.remove('project_info_window')
                 self.parent.project_info_window.close()
 
+            # Check to see if a project articles window is open
             if 'project_articles_window' in self.open_windows:
                 self.open_windows.remove('project_articles_window')
                 self.parent.project_articles_window.close()
 
+        # Check to see if the create new project window is open
         elif 'new_project_window' in self.open_windows:
             self.open_windows.remove('new_project_window')
             self.parent.new_project_window.close()
 
+        # If no projects windows are open then create a projects window and show
         elif 'projects_window' not in self.open_windows and 'new_project_window' not in self.open_windows:
             self.open_windows.add('projects_window')
             self.parent.projects_window = ProjectsWindow(self.app, self.token, self.parent)

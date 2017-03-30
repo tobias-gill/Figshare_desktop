@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QMessageBo
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QPoint)
 
-from Figshare_desktop.custom_widgets.button_field import QButtonField
+from Figshare_desktop.custom_widgets.article_list import ArticleList
 
 from Figshare_desktop.formatting.formatting import (grid_label, grid_edit, checkable_button)
 
@@ -57,12 +57,33 @@ class ProjectsArticlesWindow(QMdiSubWindow):
         :return:
         """
 
+        # Encompassing horizontal layout
+        horizontal_layout = QHBoxLayout()
+
+        # Create left vertical layout
+        left_vertical_layout = QVBoxLayout()
+
+        # Create a central vertical layout
+        central_vertical_layout = QVBoxLayout()
+        # Add search bar to central layout
+        # central_vertical_layout.addLayout()
+        # Add article tree to central layout
+        central_vertical_layout.addWidget(ArticleList(self.token, self.project_id, self.parent))
+
+        # Create right vertical layout
+        right_vertical_layout = QVBoxLayout()
+
+        # Add left, central, and right layouts to the horizontal layout
+        horizontal_layout.addLayout(left_vertical_layout)
+        horizontal_layout.addLayout(central_vertical_layout)
+        horizontal_layout.addLayout(right_vertical_layout)
+
         self.format_window()
 
         # Create a central widget for the projects window
         window_widget = QWidget()
         # Add the vertical box layout
-        #window_widget.setLayout()
+        window_widget.setLayout(horizontal_layout)
         # Set the projects window widget
         self.setWidget(window_widget)
 

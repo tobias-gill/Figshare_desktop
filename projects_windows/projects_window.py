@@ -410,7 +410,7 @@ class ProjectsWindow(QMdiSubWindow):
         """
         projects = Projects(token)
         try:
-            projects.delete(project_id, safe=False)
+            projects.delete(project_id, safe=False)  # Suppresses command line requirement for acknowledgement
             return True
         except:
             return False

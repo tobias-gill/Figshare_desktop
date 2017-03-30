@@ -46,7 +46,15 @@ class MainWindow(QMainWindow):
         self.project_info_window = None
         self.project_article_window = None
 
+        self.initFig()
         self.initUI()
+
+    def initFig(self):
+        """
+        Initialization of Figshare data
+        :return:
+        """
+        self.figshare_articles = {}
 
     def initUI(self):
         """
