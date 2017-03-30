@@ -3,7 +3,7 @@
 
 import os
 import sys
-from time import sleep
+from requests import HTTPError
 from PyQt5.QtCore import (QCoreApplication, Qt, QPoint)
 from PyQt5.QtWidgets import (QApplication, QWidget, QGridLayout, QLabel, QLineEdit, QPushButton)
 from PyQt5.QtGui import (QPixmap, QFont)
@@ -130,9 +130,11 @@ class LoginWindow(QWidget):
             self.close()
             self.window = MainWindow(app, OAuth_token)
             self.window.show()
-        except:
+        except HTTPError as err:
+            #reason = err.response.content
             self.accountNameEdit.setText("")
             self.passwordEdit.setText("")
+            self.accountNameEdit.setFocus()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

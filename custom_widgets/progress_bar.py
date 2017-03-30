@@ -21,7 +21,7 @@ class ArticleLoadBar(QMdiSubWindow):
 
     def __init__(self, maximum, parent):
         super().__init__()
-        self.maximum = maximum
+        self.maximum = maximum - 1
         self.parent = parent
         self.initUI(self.maximum)
 
@@ -63,5 +63,5 @@ class ArticleLoadBar(QMdiSubWindow):
         :return:
         """
         self.pbar.setValue(step)
-        if step == (self.maximum - 1):
+        if step == (self.maximum):
             self.parent.progress_bar.close()

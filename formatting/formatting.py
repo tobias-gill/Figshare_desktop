@@ -140,6 +140,29 @@ def search_font(app):
 
     return font
 
+def combo_font(app):
+    """
+    Returns a QFont object for combo boxes
+    :param app: QApplication object
+    :return: QFont object
+    """
+
+    # Gets window and font ratios
+    screen_ratio, font_ratio = scaling_ratio(app)
+
+    # Reference font size
+    ref_fontsize = 7
+
+    # Scale font size
+    fontsize = font_ratio * ref_fontsize
+
+    # Create and modify QFont object
+    font = QFont('SansSerif')
+    font.setBold(False)
+    font.setPointSize(fontsize)
+
+    return font
+
 
 def checkable_button(app, button):
     """
@@ -200,3 +223,14 @@ def grid_edit(app, edit):
     size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     edit.setSizePolicy(size_policy)
     edit.setFont(edit_font(app))
+
+def search_combo(app, combo):
+    """
+    Formats a QComboBox being used as a search field setter
+    :param app: QApplication
+    :param combo: QComboBox
+    :return:
+    """
+    size_policy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+    combo.setSizePolicy(size_policy)
+    combo.setFont(combo_font(app))

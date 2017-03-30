@@ -68,7 +68,7 @@ class ProjectsArticlesWindow(QMdiSubWindow):
         # Add search bar to central layout
         # central_vertical_layout.addLayout()
         # Add article tree to central layout
-        central_vertical_layout.addWidget(ArticleList(self.token, self.project_id, self.parent))
+        central_vertical_layout.addWidget(ArticleList(self.app, self.token, self.project_id, self.parent))
 
         # Create right vertical layout
         right_vertical_layout = QVBoxLayout()
