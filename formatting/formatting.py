@@ -174,7 +174,7 @@ def search_bar(app, lineedit):
     :return:
     """
     lineedit.sizeHint()
-    lineedit.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+    lineedit.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
     lineedit.setFont(search_font(app))
 
 
