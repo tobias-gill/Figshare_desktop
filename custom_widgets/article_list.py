@@ -3,11 +3,12 @@
 """
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QProgressBar, QAbstractItemView, QTreeWidget, QTreeWidgetItem,
-                             QLineEdit, QHBoxLayout, QComboBox)
+                             QLineEdit, QHBoxLayout, QComboBox, QPushButton, QDialog, QGridLayout, QSizePolicy,
+                             QCheckBox)
 from PyQt5.QtGui import (QFont, QColor, QPainter)
 from PyQt5.QtCore import (Qt, QRect)
 
-from Figshare_desktop.formatting.formatting import (search_bar, search_combo)
+from Figshare_desktop.formatting.formatting import (search_bar, search_combo, press_button)
 
 from Figshare_desktop.figshare_articles.determine_type import gen_article
 from Figshare_desktop.custom_widgets.progress_bar import ArticleLoadBar
@@ -77,6 +78,8 @@ class ArticleList(QWidget):
         search_layout.addWidget(self.search_field())
         # Add search bar to search layout
         search_layout.addWidget(self.search_bar())
+        # Add headers selection button to search layout
+        search_layout.addWidget(self.headers_selection_button())
 
         # Create a Vertical layout
         vbox = QVBoxLayout()
@@ -159,6 +162,17 @@ class ArticleList(QWidget):
         self.search_field_combo = combo
         return self.search_field_combo
 
+    def headers_selection_button(self):
+        """
+        Button pressed to open the headers selectionw window
+        :return: QPushButton
+        """
+        btn = QPushButton('Select Headers')
+        press_button(self.app, btn)
+        btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        btn.clicked[bool].connect(self.on_headers_set_pressed)
+
+        return btn
 
 
     #####
@@ -187,6 +201,11 @@ class ArticleList(QWidget):
         """
         header_item = QTreeWidgetItem(headers)
         self.tree.setHeaderItem(header_item)
+        self.tree.clear()
+        self.fill_tree(headers)
+        # Adjust the size of the columns to the contents
+        for column in range(self.tree.columnCount()):
+            self.tree.resizeColumnToContents(column)
 
     def search_on_return(self):
         """
@@ -209,6 +228,70 @@ class ArticleList(QWidget):
         self.initFig(show_progress=False)
         self.tree.clear()
         self.fill_tree(self.tree_headers)
+
+    def on_headers_set_pressed(self):
+        """
+        Called when the set headers button is pressed
+        :return:
+        """
+        # Create a dialog window
+        dlg = QDialog()
+
+        # Create a vertical layout to hold header selections and confirmation buttons
+        vbox = QVBoxLayout()
+
+        # Create a grid layout to hold the QCheckboxes
+        grid = QGridLayout()
+
+        # Add the grid to the layout
+        vbox.addLayout(grid)
+
+        # Create a confirmation button
+        btn = QPushButton('OK')
+        btn.pressed.connect(self.on_headers_ok_pressed)
+
+        # Add Button to layout
+        vbox.addWidget(btn)
+
+        # Set the dialog window layout
+        dlg.setLayout(vbox)
+
+
+        fields = OrderedSet()
+        for f in self.get_fields():
+            fields.add(f)
+
+        columns = 3
+
+        row = 0
+        while fields:
+            for i in range(columns):
+                chk_box = QCheckBox(fields.popitem()[0])
+                grid.addWidget(chk_box, row, i)
+            row += 1
+
+        self.dlg = dlg
+        self.headers_box_layout = grid
+        self.dlg.show()
+
+    def on_headers_ok_pressed(self):
+        """
+        Called when the headers dialog window ok button is pressed
+        :return:
+        """
+        boxes_layout = self.headers_box_layout
+        columns = boxes_layout.columnCount()
+        rows = boxes_layout.rowCount()
+
+        headers = []
+
+        for row in range(rows):
+            for column in range(columns):
+                box = boxes_layout.itemAtPosition(row, column).widget()
+                if box.isChecked():
+                    headers.append(box.text())
+        self.dlg.close()
+        self.update_headers(headers)
 
     #####
     # Figshare Article Functions
@@ -309,3 +392,49 @@ class ArticleList(QWidget):
 
         else:
             return []
+
+import collections
+
+class OrderedSet(collections.OrderedDict, collections.MutableSet):
+
+    def update(self, *args, **kwargs):
+        if kwargs:
+            raise TypeError("update() takes no keyword arguments")
+
+        for s in args:
+            for e in s:
+                 self.add(e)
+
+    def add(self, elem):
+        self[elem] = None
+
+    def discard(self, elem):
+        self.pop(elem, None)
+
+    def __le__(self, other):
+        return all(e in other for e in self)
+
+    def __lt__(self, other):
+        return self <= other and self != other
+
+    def __ge__(self, other):
+        return all(e in self for e in other)
+
+    def __gt__(self, other):
+        return self >= other and self != other
+
+    def __repr__(self):
+        return 'OrderedSet([%s])' % (', '.join(map(repr, self.keys())))
+
+    def __str__(self):
+        return '{%s}' % (', '.join(map(repr, self.keys())))
+
+    difference = property(lambda self: self.__sub__)
+    difference_update = property(lambda self: self.__isub__)
+    intersection = property(lambda self: self.__and__)
+    intersection_update = property(lambda self: self.__iand__)
+    issubset = property(lambda self: self.__le__)
+    issuperset = property(lambda self: self.__ge__)
+    symmetric_difference = property(lambda self: self.__xor__)
+    symmetric_difference_update = property(lambda self: self.__ixor__)
+    union = property(lambda self: self.__or__)
