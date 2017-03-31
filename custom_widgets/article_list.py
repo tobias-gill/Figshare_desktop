@@ -1,7 +1,7 @@
 """
 
 """
-import copy
+import collections
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QProgressBar, QAbstractItemView, QTreeWidget, QTreeWidgetItem,
                              QLineEdit, QHBoxLayout, QComboBox, QPushButton, QDialog, QGridLayout, QSizePolicy,
@@ -107,9 +107,11 @@ class ArticleList(QWidget):
         tree = QTreeWidget()
         # Format tree to allow for multiple items to be selected
         tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        # Allow for sorting by clicking on headers
+        tree.setSortingEnabled(True)
 
         # Create the initial set of column headers
-        headers = ['title', 'id', 'created_date', 'up_to_date', 'type', 'tags']
+        headers = ['id', 'title', 'created_date', 'up_to_date', 'type', 'tags']
         header_item = QTreeWidgetItem(headers)
         tree.setHeaderItem(header_item)
 
@@ -259,24 +261,31 @@ class ArticleList(QWidget):
         # Set the dialog window layout
         dlg.setLayout(vbox)
 
-
+        # Create an ordered set of field names
         fields = OrderedSet()
         for f in self.get_fields():
             fields.add(f)
 
+        # Define how many columns of check boxes to create
         columns = 3
 
+        # Empty the tree headers list
         self.tree_headers = []
 
+        # Start at row zero
         row = 0
+        # While we still have a field in the ordered set
         while fields:
             for i in range(columns):
-                exec("chk_box_{}_{} = QCheckBox(fields.popitem()[0])".format(row, i))
-                eval("chk_box_{}_{}".format(row, i)).stateChanged.connect(lambda state, r=row, c=i: self.check_box_clicked(r, c))
-                # chk_box = QCheckBox(fields.popitem()[0])
-                # chk_box.stateChanged.connect(lambda: self.check_box_clicked(row, i))
-                grid.addWidget(eval("chk_box_{}_{}".format(row, i)), row, i)
-            row += 1
+                # Here we have to use the exec fundtion to programatically name each box variable otherwise the connect
+                # function only ever calls the last button.
+                # Further complication from having to remember that the stateChanged signal passes a bool int to the
+                # lambda function.
+                exec("chk_box_{}_{} = QCheckBox(fields.popitem()[0])".format(row, i))  # Create a checkbox
+                eval("chk_box_{}_{}".format(row, i)).stateChanged.connect(lambda state, r=row,
+                                                                                 c=i: self.check_box_clicked(r, c))
+                grid.addWidget(eval("chk_box_{}_{}".format(row, i)), row, i)  # add the checkbox to the grid
+            row += 1  # increase the row counter
 
         self.dlg = dlg
         self.headers_box_layout = grid
@@ -287,18 +296,12 @@ class ArticleList(QWidget):
         Called when a check box in the header selection dialog is clicked
         :return:
         """
-        print('=====================')
-        print(self.tree_headers)
-        print(row, column)
         if self.headers_box_layout.itemAtPosition(row, column) is not None:
             field = self.headers_box_layout.itemAtPosition(row, column).widget().text()
             if field in self.tree_headers:
                 self.tree_headers.remove(field)
             elif field not in self.tree_headers:
                 self.tree_headers.append(field)
-            print(field)
-            print(self.tree_headers)
-
 
     def on_headers_ok_pressed(self):
         """
@@ -306,7 +309,38 @@ class ArticleList(QWidget):
         :return:
         """
         self.dlg.close()
+
+        # Ensure that id number is always the first column.
+        if self.tree_headers[0] != 'id':
+            self.tree_headers.insert(0, 'id')
+
         self.update_headers(self.tree_headers)
+
+    def get_selection(self):
+        """
+        Can be called to return a list of the article id numbers of all selected articles
+        :return:
+        """
+        items = self.tree.selectedItems()
+
+        article_ids = set()
+        for item in items:
+            article_ids.add(int(item.text(0)))
+
+        return article_ids
+
+    def get_all(self):
+        """
+        Can be called to return the article id numbers of all articles in the tree
+        :return:
+        """
+        items = self.tree.selectAll()
+
+        article_ids = set()
+        for item in items:
+            article_ids.add(int(item.text(0)))
+
+        return article_ids
 
     #####
     # Figshare Article Functions
@@ -408,7 +442,6 @@ class ArticleList(QWidget):
         else:
             return []
 
-import collections
 
 class OrderedSet(collections.OrderedDict, collections.MutableSet):
 
