@@ -1,6 +1,7 @@
 """
 
 """
+import copy
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QProgressBar, QAbstractItemView, QTreeWidget, QTreeWidgetItem,
                              QLineEdit, QHBoxLayout, QComboBox, QPushButton, QDialog, QGridLayout, QSizePolicy,
@@ -242,6 +243,8 @@ class ArticleList(QWidget):
 
         # Create a grid layout to hold the QCheckboxes
         grid = QGridLayout()
+        grid.setHorizontalSpacing(15)
+        grid.setVerticalSpacing(15)
 
         # Add the grid to the layout
         vbox.addLayout(grid)
@@ -263,41 +266,53 @@ class ArticleList(QWidget):
 
         columns = 3
 
+        self.tree_headers = []
+
         row = 0
         while fields:
             for i in range(columns):
-                chk_box = QCheckBox(fields.popitem()[0])
-                grid.addWidget(chk_box, row, i)
+                exec("chk_box_{}_{} = QCheckBox(fields.popitem()[0])".format(row, i))
+                eval("chk_box_{}_{}".format(row, i)).stateChanged.connect(lambda state, r=row, c=i: self.check_box_clicked(r, c))
+                # chk_box = QCheckBox(fields.popitem()[0])
+                # chk_box.stateChanged.connect(lambda: self.check_box_clicked(row, i))
+                grid.addWidget(eval("chk_box_{}_{}".format(row, i)), row, i)
             row += 1
 
         self.dlg = dlg
         self.headers_box_layout = grid
         self.dlg.show()
 
+    def check_box_clicked(self, row, column):
+        """
+        Called when a check box in the header selection dialog is clicked
+        :return:
+        """
+        print('=====================')
+        print(self.tree_headers)
+        print(row, column)
+        if self.headers_box_layout.itemAtPosition(row, column) is not None:
+            field = self.headers_box_layout.itemAtPosition(row, column).widget().text()
+            if field in self.tree_headers:
+                self.tree_headers.remove(field)
+            elif field not in self.tree_headers:
+                self.tree_headers.append(field)
+            print(field)
+            print(self.tree_headers)
+
+
     def on_headers_ok_pressed(self):
         """
         Called when the headers dialog window ok button is pressed
         :return:
         """
-        boxes_layout = self.headers_box_layout
-        columns = boxes_layout.columnCount()
-        rows = boxes_layout.rowCount()
-
-        headers = []
-
-        for row in range(rows):
-            for column in range(columns):
-                box = boxes_layout.itemAtPosition(row, column).widget()
-                if box.isChecked():
-                    headers.append(box.text())
         self.dlg.close()
-        self.update_headers(headers)
+        self.update_headers(self.tree_headers)
 
     #####
     # Figshare Article Functions
     #####
 
-    def does_article_exist_locally(self, article_id):
+    def    does_article_exist_locally(self, article_id):
         """
         Checks to see if there is a local version of the article.
         :param article_id: int. Figshare article id number
