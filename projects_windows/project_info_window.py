@@ -11,9 +11,11 @@ from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QMessageBo
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QPoint)
 
+from Figshare_desktop.formatting.formatting import (label_font)
+
 from Figshare_desktop.custom_widgets.button_field import QButtonField
 
-from Figshare_desktop.formatting.formatting import (grid_label, grid_edit, checkable_button)
+from Figshare_desktop.formatting.formatting import (grid_label, grid_edit, checkable_button, grid_title)
 
 from Figshare_desktop.projects_windows.articles_window import ProjectsArticlesWindow
 
@@ -109,7 +111,7 @@ class ProjectInfoWindow(QMdiSubWindow):
         x0 = section_geom.x() + section_geom.width()
         y0 = section_geom.y()
         w = geom.width() - x0
-        h = ((geom.height() - y0) / 3)
+        h = ((geom.height() - y0) * 0.375)
         self.setGeometry(x0, y0, w, h)
         # Remove frame from the window
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -187,7 +189,7 @@ class ProjectInfoWindow(QMdiSubWindow):
         # Create Edit/Label
         title = self.project_info['title']
         title_edit = QLineEdit(title)
-        grid_label(self.app, title_edit)
+        grid_title(self.app, title_edit)
         title_edit.setEnabled(False)
         self.title_wid = title_edit
 
@@ -259,7 +261,6 @@ class ProjectInfoWindow(QMdiSubWindow):
         sep.setFrameShape(QFrame.VLine)
         sep.setFrameShadow(QFrame.Sunken)
         return sep
-
 
     def info_grid(self):
         """
@@ -352,16 +353,16 @@ class ProjectInfoWindow(QMdiSubWindow):
         grid.addWidget(pub_field, 1, 1)
 
         grid.addWidget(col_lbl, 2, 0)
-        grid.addWidget(col_field, 2, 1)
+        grid.addWidget(col_field, 2, 1, 1, 3)
 
         grid.addWidget(fund_lbl, 3, 0)
-        grid.addWidget(funding_field, 3, 1)
+        grid.addWidget(funding_field, 3, 1, 1, 3)
 
-        grid.addWidget(group_lbl, 4, 0)
-        grid.addWidget(group_lbl, 4, 1)
+        grid.addWidget(group_lbl, 0, 2)
+        grid.addWidget(group_lbl, 0, 3)
 
-        grid.addWidget(stor_lbl, 5, 0)
-        grid.addWidget(storage_field, 5, 1)
+        grid.addWidget(stor_lbl, 1, 2)
+        grid.addWidget(storage_field, 1, 3)
 
         return grid
 

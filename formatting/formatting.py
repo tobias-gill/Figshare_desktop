@@ -71,7 +71,8 @@ def button_font(app):
 
     return font
 
-def label_font(app):
+
+def title_font(app):
     """
     Returns a QFont object for buttons
     :param app: QApplication object
@@ -83,6 +84,30 @@ def label_font(app):
 
     # Reference font size
     ref_fontsize = 12
+
+    # Scale font size
+    fontsize = font_ratio * ref_fontsize
+
+    # Create and modify QFont object
+    font = QFont('SansSerif')
+    font.setBold(True)
+    font.setPointSize(fontsize)
+
+    return font
+
+
+def label_font(app):
+    """
+    Returns a QFont object for buttons
+    :param app: QApplication object
+    :return: QFont object
+    """
+
+    # Gets window and font ratios
+    screen_ratio, font_ratio = scaling_ratio(app)
+
+    # Reference font size
+    ref_fontsize = 9
 
     # Scale font size
     fontsize = font_ratio * ref_fontsize
@@ -200,6 +225,16 @@ def search_bar(app, lineedit):
     lineedit.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
     lineedit.setFont(search_font(app))
 
+def grid_title(app, label):
+    """
+    Formats a QLabel
+    :param app: QApplication
+    :param label: QLabel
+    :return:
+    """
+    size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    label.setSizePolicy(size_policy)
+    label.setFont(label_font(app))
 
 def grid_label(app, label):
     """

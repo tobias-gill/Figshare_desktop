@@ -30,8 +30,8 @@ class QTagButton(QPushButton):
         self.tag_set = tag_set
 
         self.setText(label)
-        font = QFont('SansSerif', 11)
-        font.setBold(True)
+        font = QFont('SansSerif', 9)
+        font.setBold(False)
         self.setFont(font)
         font_metric = QFontMetrics(font)
         width = font_metric.width(label) + 20

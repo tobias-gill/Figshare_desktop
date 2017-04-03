@@ -2,7 +2,7 @@
 
 """
 
-from PyQt5.QtWidgets import (QWidget, QLineEdit, QHBoxLayout, QScrollArea)
+from PyQt5.QtWidgets import (QWidget, QLineEdit, QHBoxLayout, QScrollArea, QSizePolicy)
 from PyQt5.QtGui import (QFont, QColor, QPainter)
 from PyQt5.QtCore import (Qt, QRect)
 
@@ -81,7 +81,7 @@ class QButtonField(QWidget):
         :return:
         """
 
-        offset = 1
+        offset = 0
 
         parent = self.parent()
         geom = parent.geometry()
