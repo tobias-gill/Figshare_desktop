@@ -44,7 +44,8 @@ class MainWindow(QMainWindow):
         self.projects_window = None
         self.new_project_window = None
         self.project_info_window = None
-        self.project_article_window = None
+        self.project_articles_window = None
+        self.article_edit_window = None
 
         self.initFig()
         self.initUI()

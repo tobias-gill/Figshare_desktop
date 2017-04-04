@@ -190,6 +190,7 @@ class ProjectInfoWindow(QMdiSubWindow):
         title = self.project_info['title']
         title_edit = QLineEdit(title)
         grid_title(self.app, title_edit)
+        title_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         title_edit.setEnabled(False)
         self.title_wid = title_edit
 
@@ -212,7 +213,7 @@ class ProjectInfoWindow(QMdiSubWindow):
 
     def description_vbox(self):
         """
-        Creates a Vertical box layour containing the description label and edit button and a textedit field
+        Creates a Vertical box layout containing the description label and edit button and a textedit field
         :return: QVBoxLayout
         """
 
@@ -400,6 +401,9 @@ class ProjectInfoWindow(QMdiSubWindow):
         if 'project_articles_window' in self.open_windows:
             self.open_windows.remove('project_articles_window')
             self.parent.project_articles_window.close()
+        elif 'article_edit_window' in self.open_windows:
+            self.open_windows.remove('article_edit_window')
+            self.parent.article_edit_window.close()
         else:
             self.open_windows.add('project_articles_window')
             self.parent.project_articles_window = ProjectsArticlesWindow(self.app, self.token, self.parent,

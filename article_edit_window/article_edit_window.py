@@ -1,13 +1,22 @@
 """
 
 """
+
 import os
-from PyQt5.QtWidgets import (QWidget, QSizePolicy, QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QTabWidget,
-                             QGridLayout, QTextEdit, QLineEdit, QScrollArea, QButtonGroup, QComboBox)
-from PyQt5.QtGui import (QIcon, QFont)
+from requests import HTTPError
+
+from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QMessageBox, QScrollArea, QMdiSubWindow,
+                             QTextEdit, QGridLayout, QHBoxLayout, QVBoxLayout, QSizePolicy, QTabWidget, QComboBox)
+from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QPoint)
 
-from figshare_interface.figshare_structures.projects import Projects
+from Figshare_desktop.formatting.formatting import (label_font)
+
+from Figshare_desktop.custom_widgets.button_field import QButtonField
+
+from Figshare_desktop.formatting.formatting import (grid_label, grid_edit, press_button, grid_title)
+
+from figshare_interface import (Groups, Projects)
 
 __author__ = "Tobias Gill"
 __credits__ = ["Tobias Gill", "Adrian-Tudor Panescu", "Miriam Keshani"]
@@ -18,674 +27,556 @@ __email__ = "toby.gill.09@ucl.ac.uk"
 __status__ = "Development"
 
 
-class ArticleEditWindow(QWidget):
+class ArticleEditWindow(QMdiSubWindow):
 
-    def __init__(self, app, OAuth_token, main_window, parent_window_loc, article_ids, project_id=None,
-                 collection_id=None):
+    def __init__(self, app, OAuth_token, parent, project_id, article_ids):
         super().__init__()
 
         self.app = app
         self.token = OAuth_token
-        self.main_window = main_window
-        self.piw_loc = parent_window_loc
+        self.parent = parent
+        self.project_id = project_id
+        self.article_ids = article_ids
 
-        self.articles_ids = article_ids
-
-        if project_id is not None:
-            self.project_id = project_id
-        if collection_id is not None:
-            self.collection_id = collection_id
-
+        self.initFig()
         self.initUI()
+
+    def initFig(self):
+        """
+        Initialises the figshare data
+        :return:
+        """
+        # Get the number of articles
+        n_articles = len(self.article_ids)
+
+        # For more than one article
+        if n_articles > 1:
+            # Get the type of article for the first in the list
+            article = self.parent.figshare_articles[str(self.article_ids[0])]
+            initial_type = article.get_type()
+            # Initially set all files as the same type
+            self.same_type = True
+            # Loop through all files and check to see if they are all the same
+            for article_id in self.article_ids:
+                article = self.parent.figshare_articles[str(article_id)]
+                type = article.get_type()
+                if type != initial_type:
+                    self.same_type = False
+                    break
+
+            # Set the dictionary of metadata keys
+            figshare_metadata = {}
+            article = self.parent.figshare_articles[str(self.article_ids[0])]
+            for d in article.input_dicts()[0:1]:
+                figshare_metadata = {**figshare_metadata, **d}
+            self.figshare_metadata = dict.fromkeys(figshare_metadata)
+
+            # Set the dictionary of file specific metadata keys
+            self.file_metadata = None
+            if self.same_type:
+                if len(article.input_dicts()) > 2:
+                    file_dict = {}
+                    for d in article.input_dicts()[2:]:
+                        file_dict = {**file_dict, **d}
+                    self.file_metadata = dict.fromkeys(file_dict)
+
+        # For a single article
+        else:
+
+            # Set the dictionary of metadata keys and values
+            figshare_metadata = {}
+            article = self.parent.figshare_articles[str(self.article_ids[0])]
+            for d in article.input_dicts()[0:1]:
+                figshare_metadata = {**figshare_metadata, **d}
+            self.figshare_metadata = figshare_metadata
+
+            # Set the dictionary of file specific metadata keys and values
+            self.file_metadata = None
+            if len(article.input_dicts()) > 2:
+                file_dict = {}
+                for d in article.input_dicts()[2:]:
+                    file_dict = {**file_dict, **d}
+                self.file_metadata = file_dict
+
+        # Metadata Dictionaries
+        self.defined_type_dict = {'': 0, 'figure': 1, 'media': 2, 'dataset': 3, 'fileset': 4, 'poster': 5, 'paper': 6,
+                                  'presentation': 7, 'thesis': 8, 'code': 9, 'metadata': 10}
+        self.license_dict = {0: '', 1: 'CC BY', 2: 'CC-0', 3: 'MIT', 4: 'GPL', 5: 'GPL-2.0', 6: 'GPL-3.0',
+                             7: 'Apache-2.0'}
 
     def initUI(self):
 
-        self.formatWindow()
+        # Format the geometry of the window
+        self.format_window()
 
-        self.label_font = self.article_label_font()
-        self.edit_font = self.article_edit_font()
-        self.button_groups = {}
-        hbox = QHBoxLayout()
-        self.tab_layout = QTabWidget()
+        # Create a horizontal layout
+        self.hbox = QHBoxLayout()
 
-        hbox.addLayout(self.confirmation_layout())
+        # Add the save and exit buttons
+        self.hbox.addLayout(self.control_button_layout())
 
-        self.basic_info_widget = self.basic_info_layout()
+        # Add the tab widget
+        self.tabs = self.metadata_tab_window()
+        self.hbox.addWidget(self.tabs)
 
-        self.decide_basic_layout(self.articles_ids)
+        # Create a central widget for the article edit window
+        window_widget = QWidget()
+        # Add the horizontal box layout
+        window_widget.setLayout(self.hbox)
+        # Set the projects window widget
+        self.setWidget(window_widget)
 
-        self.tab_layout.addTab(self.basic_info_widget, 'Figshare Metadata')
+    #####
+    # Window Formatting
+    #####
 
-        self.file_specific_layout = self.decide_file_layout(self.articles_ids)
-        if self.file_specific_layout is not None:
-            self.tab_layout.addTab(self.file_specific_layout, 'File Metadata')
-
-        hbox.addWidget(self.tab_layout)
-        self.setLayout(hbox)
-
-    def formatWindow(self):
-
-        piw_x0 = self.piw_loc.x()
-        piw_y0 = self.piw_loc.y()
-        piw_width = self.piw_loc.width()
-        piw_height = self.piw_loc.height()
-
-        screen = self.app.primaryScreen().availableGeometry()
-
-        x0 = piw_x0
-        y0 = piw_y0 + piw_height + 10
-        w_width = screen.width() - x0
-        w_height = screen.height() / 3
-
-        self.setGeometry(x0, y0, w_width, w_height)
+    def format_window(self):
+        """
+        Sets the window geometry
+        :return:
+        """
+        # Gets the QRect of the main window
+        geom = self.parent.geometry()
+        # Gets the Qrect of the sections window
+        section_geom = self.parent.section_geom
+        # Define geometries for the projects window
+        x0 = section_geom.x() + section_geom.width()
+        y0 = section_geom.y()
+        w = geom.width() - x0
+        h = ((geom.height() - y0) * 0.375)
+        self.setGeometry(x0, y0, w, h)
+        # Remove frame from the window
         self.setWindowFlags(Qt.FramelessWindowHint)
 
-    def mousePressEvent(self, event):
-        self.oldPos = event.globalPos()
+    #####
+    # Window Widgets
+    #####
 
-    def mouseMoveEvent(self, event):
-        delta = QPoint(event.globalPos() - self.oldPos)
-        self.move(self.x() + delta.x(), self.y() + delta.y())
-        self.oldPos = event.globalPos()
-
-    def confirmation_layout(self):
-        sizepolicy = QSizePolicy()
-        sizepolicy.setVerticalPolicy(QSizePolicy.Expanding)
-        sizepolicy.setVerticalPolicy(QSizePolicy.Preferred)
-
-        btn_exit = QPushButton()
-        btn_exit.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/exit.png')))
-        btn_exit.setSizePolicy(sizepolicy)
-        btn_exit.pressed.connect(self.on_exit_pressed)
-
-        btn_save = QPushButton()
-        btn_save.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/figshare_upload.png')))
-        btn_save.setSizePolicy(sizepolicy)
-        btn_save.pressed.connect(self.on_save_pressed)
-
+    def control_button_layout(self):
+        """
+        Creates a layout with the save and exit buttons
+        :return: QVBoxLayout
+        """
+        # Create the layout
         vbox = QVBoxLayout()
-
-        vbox.addWidget(btn_exit)
-        vbox.addWidget(btn_save)
+        # Add the exit button
+        exit_btn = self.exit_button()
+        vbox.addWidget(exit_btn)
+        # Add the save button
+        save_btn = self.save_button()
+        vbox.addWidget(save_btn)
 
         return vbox
 
-    def basic_info_layout(self):
+    def exit_button(self):
         """
-        Create a Layout containing editable fields for the basic figshare article metadata.
+        Creates an exit button to close the article edit window without saving changes
+        :return: QPushButton
+        """
+        btn = QPushButton()
+        btn.setIcon(QIcon(os.path.normpath(__file__ + '/../../img/exit.png')))
+        press_button(self.app, btn)
+        btn.pressed.connect(self.on_exit_pressed)
+
+        return btn
+
+    def save_button(self):
+        """
+        Creates a save button to push changes to Figshare
+        :return: QPushButton
+        """
+        btn = QPushButton()
+        btn.setIcon(QIcon(os.path.normpath(__file__ + '/../../img/figshare_upload.png')))
+        press_button(self.app, btn)
+        btn.pressed.connect(self.on_save_pressed)
+
+        return btn
+
+    def metadata_tab_window(self):
+        """
+        Creates a tab layout to hold the different metadata tabs
+        :return:
+        """
+        # Create Tab Widget
+        tab_wid = QTabWidget()
+
+        # Add Figshare Metadata Tab
+        self.figshare_tab = self.init_figshare_metadata_tab()
+        tab_wid.addTab(self.figshare_tab, 'Figshare Metadata')
+
+        if self.file_metadata is not None:
+            self.filespecific_tab = self.init_filespecific_metadata_tab()
+            tab_wid.addTab(self.filespecific_tab, 'File Specific Metadata')
+
+        return tab_wid
+
+    def init_figshare_metadata_tab(self):
+        """
+        Creates a QWidget for the default Figshare metadata
         :return:
         """
 
-        # Layout
-        basic_info_widget = QWidget()
-        vbox = QVBoxLayout(basic_info_widget)
+        # Create widget object to fill with metadata
+        tab = QScrollArea()
+        scroll_wid = QWidget()
 
-        # Title
-        self.add_lineedit(vbox, 'title', '')
+        # Create metadata labels and fields
+        title_lbl, title_edit = self.create_lineedit('Title', self.figshare_metadata['title'])
+        if len(self.article_ids) > 1:
+            title_edit.setEnabled(False)
+            title_edit.clear()
+            title_edit.setPlaceholderText('Files will retain their individual titles')
+        descr_lbl, descr_edit = self.create_textedit('Description', self.figshare_metadata['description'])
+        ref_lbl, ref_field = self.create_buttonfield('References', self.figshare_metadata['references'])
+        cat_lbl, cat_field = self.create_buttonfield('Categories', self.figshare_metadata['categories'])
+        auth_lbl, auth_field = self.create_buttonfield('Authors', self.figshare_metadata['authors'])
+        def_lbl, def_combo = self.create_combo('Defined Type', self.defined_type_dict,
+                                               self.figshare_metadata['defined_type'])
 
-        # Description
-        self.add_textedit(vbox, 'description', '')
+        fund_tags = self.figshare_metadata['funding']
+        if self.figshare_metadata['funding'] is not None:
+            fund_tags = self.figshare_metadata['funding'].split(':_:')
+            if '' in fund_tags:
+                fund_tags.remove('')
+            if ' ' in fund_tags:
+                fund_tags.remove(' ')
+        fund_lbl, fund_field = self.create_buttonfield('Funding', fund_tags)
 
-        # Tags
-        self.add_buttonlist(vbox, 'tags', [''])
+        lic_lbl, lic_combo = self.create_combo('License', self.license_dict, self.figshare_metadata['license'])
 
-        # Categories
-        self.add_buttonlist(vbox, 'categories', [''])
+        # Create layout
+        grid = QGridLayout()
 
-        # References
-        self.add_buttonlist(vbox, 'references', [''])
+        # Add widgets to layout
+        grid.addWidget(title_lbl, 0, 0)
+        grid.addWidget(title_edit, 0, 1)
+        grid.addWidget(descr_lbl, 1, 0)
+        grid.addWidget(descr_edit, 1, 1)
+        grid.addWidget(ref_lbl, 2, 0)
+        grid.addWidget(ref_field, 2, 1)
+        grid.addWidget(cat_lbl, 3, 0)
+        grid.addWidget(cat_field, 3, 1)
+        grid.addWidget(auth_lbl, 4, 0)
+        grid.addWidget(auth_field, 4, 1)
+        grid.addWidget(def_lbl, 5, 0)
+        grid.addWidget(def_combo, 5, 1)
+        grid.addWidget(fund_lbl, 6, 0)
+        grid.addWidget(fund_field, 6, 1)
+        grid.addWidget(lic_lbl, 7, 0)
+        grid.addWidget(lic_combo, 7, 1)
 
-        # Authors
-        self.add_buttonlist(vbox, 'authors', [''])
+        scroll_wid.setLayout(grid)
+        tab.setWidget(scroll_wid)
 
-        # Defined Type
-        self.add_dropdownlist(vbox, 'defined_type', [''])
+        return tab
 
-        # Funding Label
-        self.add_textedit(vbox, 'funding', '')
+    def init_filespecific_metadata_tab(self):
+        """
+        Creates a QTabWidget to add to the article edit window
+        :return:
+        """
+        # Get the first article from the article is list
+        article = self.parent.figshare_articles[str(self.article_ids[0])]
 
-        # License
-        self.add_dropdownlist(vbox, 'license', [''])
+        # Check to see if the article is a known file format
+        if self.file_metadata is not None:
 
-        scroll_area = QScrollArea()
-        scroll_area.setWidget(basic_info_widget)
-        scroll_area.setWidgetResizable(True)
+            # Create widget object to fill with metadata
+            tab = QScrollArea()
+            scroll_wid = QWidget()
 
+            grid = QGridLayout()
 
+            row_number = 0
 
-        return scroll_area
+            for key, value in self.file_metadata.items():
+                value = str(value)
+                lbl, edit = self.create_lineedit(key, value)
+                grid.addWidget(lbl, row_number, 0)
+                grid.addWidget(edit, row_number, 1)
+                row_number += 1
 
-    def decide_basic_layout(self, article_ids):
+            scroll_wid.setLayout(grid)
+            tab.setWidget(scroll_wid)
 
-        article = self.main_window.articles[article_ids[0]]
-        basic_info_dict = article.figshare_metadata
-        basic_info_layout = self.basic_info_widget.widget().layout()
-        for widget_pos in range(0, basic_info_layout.count() - 1, 2):
-            lbl = basic_info_layout.itemAt(widget_pos).widget().text()
-            edit_widget = basic_info_layout.itemAt(widget_pos + 1).widget()
+            return tab
 
-            if edit_widget is None:
-                edit_widget = basic_info_layout.itemAt(widget_pos + 1).layout()
+    def create_label(self, label):
+        """
+        Creates and formats a QLabel
+        :param label: String.
+        :return: QLabel
+        """
+        lbl = QLabel(label)
+        grid_label(self.app, lbl)
+        lbl.setMaximumWidth(self.geometry().width() * 0.2)
 
-            edit_widget_type = type(edit_widget)
-            if edit_widget_type is QLineEdit:
-                if len(article_ids) > 1:
-                    if lbl == 'title':
-                        edit_widget.setText('Multiple Files')
-                        edit_widget.setReadOnly(True)
+        return lbl
+
+    def create_lineedit(self, label, fill):
+        """
+        Creates and formats a QLabel and QlineEdit pair
+        :param label: String.
+        :param fill: String
+        :return: QLabel, QLineEdit
+        """
+        lbl = self.create_label(label)
+
+        edit = QLineEdit(fill)
+        grid_edit(self.app, edit)
+
+        return lbl, edit
+
+    def create_textedit(self, label, fill):
+        """
+        Creates and formats a QLabel and QTextEdit pair
+        :param label: String.
+        :param fill: String.
+        :return: QLabel, QTextEdit
+        """
+        lbl = self.create_label(label)
+
+        edit = QTextEdit(fill)
+        grid_edit(self.app, edit)
+
+        return lbl, edit
+
+    def create_buttonfield(self, label, fill_list):
+        """
+        Creates and formats a QLabel and QButtonfield pair
+        :param label: String
+        :param fill_list: List of Strings
+        :return: QLabel, QButtonField
+        """
+        lbl = self.create_label(label)
+
+        button_field = QButtonField()
+        if fill_list is not None:
+            for tag in fill_list:
+                if type(tag) == dict:
+                    button_field.add_tag(tag['id'])
                 else:
-                    edit_widget.setText(basic_info_dict[lbl])
+                    button_field.add_tag(tag)
 
-            elif edit_widget_type is QTextEdit:
-                edit_widget.setText(basic_info_dict[lbl])
+        return lbl, button_field
 
-            elif edit_widget_type is QHBoxLayout:  # This is a button list
-                info = basic_info_dict[lbl]
-                button_group = self.button_groups[lbl]
-                info_strings = []
-                info_type = type(info)
+    def create_combo(self, label, metadata_dict, fill):
+        """
+        Creates and formats a QLabel and QComboBox pair
+        :param label: String
+        :param fill_list: list of strings.
+        :return: QLabel, QComboBox
+        """
+        lbl = self.create_label(label)
 
-                if info_type is list and info != []:
-                    list_type = type(info[0])
-                    if list_type is dict:
-                        for item in info:
-                            for value in item.values():
-                                info_strings.append(str(value))
-                    elif list_type is str:
-                        info_strings = info
-                    elif list_type is int:
-                        for item in info:
-                            info_strings.append(str(item))
-                    else:
-                        pass
-                elif info_type is str:
-                    info_strings = [info]
-                for item in info_strings:
-                    self.on_add_button_to_list(button_group, edit_widget, None, item)
-
-            elif edit_widget_type is QComboBox:
-                edit_widget.clear()
-
-                if lbl == 'defined_type':
-                    info_string = basic_info_dict[lbl]
-                    type_dict = {1: 'figure', 2: 'media', 3: 'dataset', 4: 'fileset', 5: 'poster', 6: 'paper',
-                                 7: 'presentation', 8: 'thesis', 9: 'code', 10: 'metadata'}
-                    for info_pos in range(len(type_dict)):
-                        item = type_dict[info_pos + 1]
-                        edit_widget.addItem(item)
-
-                    if type(info_string) is int:
-                        edit_widget.setCurrentIndex(info_string)
-                    elif type(info_string) is str:
-                        for key, value in type_dict.items():
-                            if value == info_string:
-                                edit_widget.setCurrentIndex(key)
-                                break
-                    elif info_string is None:
-                        edit_widget.setCurrentIndex(3)
-
-                elif lbl == 'license':
-                    info_int = basic_info_dict[lbl]
-                    type_list = [None, 'CC BY', 'CC-0', 'MIT', 'GPL', 'GPL-2.0', 'GPL-3.0', 'Apache']
-
-                    for item in type_list:
-                        edit_widget.addItem(item)
-                    if info_int is None:
-                        edit_widget.setCurrentIndex(0)
-                    else:
-                        edit_widget.setCurrentIndex(info_int)
-
-
-    def file_specific_info_layout(self, article_dicts):
-
-        window_size = self.geometry()
-
-        # Fonts
-        # - Label Font
-        s = window_size.height() / 20
-        min_s = 10
-        if s < min_s:
-            lbl_font_size = min_s
-        else:
-            lbl_font_size = s
-        lbl_font = QFont('SansSerif', lbl_font_size)
-        lbl_font.setBold(True)
-
-        # - Edit Font
-        s = window_size.height() / 25
-        min_s = 7
-        if s < min_s:
-            edit_font_size = min_s
-        else:
-            edit_font_size = s
-        edit_font = QFont('SansSerif', edit_font_size)
-
-        # - Expand Horizontally
-        horSizePolicy = QSizePolicy()
-        horSizePolicy.setVerticalPolicy(QSizePolicy.Preferred)
-        horSizePolicy.setHorizontalPolicy(QSizePolicy.Expanding)
-
-        file_info_widget = QWidget()
-        vbox = QVBoxLayout(file_info_widget)
-
-        for dictionary in article_dicts:
-
-            for key, value in dictionary.items():
-                lbl = QLabel(str(key))
-                lbl.setFont(lbl_font)
-                lbl.setSizePolicy(horSizePolicy)
-                vbox.addWidget(lbl)
-
-                edit = QLineEdit()
-                edit.setFont(edit_font)
-                edit.setText(str(value))
-                edit.setSizePolicy(horSizePolicy)
-                vbox.addWidget(edit)
-
-        scroll_area = QScrollArea()
-        scroll_area.setWidget(file_info_widget)
-        scroll_area.setWidgetResizable(True)
-
-        return scroll_area
-
-    def known_file_type(self, article_id):
-        article = self.main_window.articles[article_id]
-        article_type = article.get_type()
-        if article_type != 'article':
-            return article.input_dicts()[2:]
-        else:
-            return None
-
-    def decide_file_layout(self, articles_ids):
-
-        # Local reference to the articles dictionary.
-        articles = self.main_window.articles
-
-        # If more than one article is to be edited check to see if all files are of the same type.
-        if len(articles_ids) > 1:
-            # Get the type of the first article.
-            first_type = articles[articles_ids[0]].get_type()
-            # Check that all other articles are the same.
-            for article in articles_ids:
-                article_type = articles[article].get_type()
-                # If article is not the same type as the first return None. Else continue.
-                if article_type != first_type:
-                    return None
-            # At this point we know all files are the same type, but will have different values for their metadata.
-            # Here we create a new blank dictionary from the keys of the first article.
-
-            article_dict = self.known_file_type(articles_ids[0])
-            if article_dict is not None:
-                blank_dict = dict.fromkeys(article_dict[0], '')
-                return self.file_specific_info_layout([blank_dict])
+        combo = QComboBox()
+        for key, value in metadata_dict.items():
+            if type(key) is str:
+                combo.addItem(key)
             else:
-                return None
+                combo.addItem(value)
+        if type(fill) is int:
 
-        # If a single article id has been given.
-        else:
-            # Find out if the file type is known.
-            article_dicts = self.known_file_type(articles_ids[0])
-            # If the file type is know generate a file specific metadata layout.
-            if article_dicts is not None:
-                return self.file_specific_info_layout(article_dicts)
-            # Otherwise return nothing.
-            else:
-                return None
+            combo.setCurrentIndex(fill)
+        elif type(fill) is str:
+            combo.setCurrentIndex(metadata_dict[fill])
+        return lbl, combo
+
+    #####
+    # Widget Actions
+    #####
 
     def on_exit_pressed(self):
-        self.close()
-        self.main_window.centralWidget().projects_window.projects_info_window.article_edit_open = False
-        self.main_window.centralWidget().projects_window.projects_info_window.on_show_articles_pressed()
+        """
+        Called when the exit button is pressed. Closes the article edit window without saving any changes
+        :return:
+        """
+        # Close article edit window
+        self.parent.open_windows.remove('article_edit_window')
+        self.parent.article_edit_window.close()
+
+        # Open project articles window
+        self.parent.project_info_window.on_articles_pressed()
 
     def on_save_pressed(self):
+        """
+        Called when the save button is pressed. Pushes changes to figshare and creates a confirmation dialog
+        :return:
+        """
+        self.update_all_articles(self.article_ids)
+    #####
+    # Figshare Actions
+    #####
 
-        tab_layout = self.tab_layout
-        open_tab_index = tab_layout.currentIndex()
+    def update_all_articles(self, article_list):
+        """
+        Updates multiple articles
+        :param article_list: list of int.
+        :return:
+        """
+        all_errors = []
+        for article_id in article_list:
+            errors = self.update_single_article(article_id)
+            if errors != []:
+                for err in errors:
+                    all_errors.append(err)
 
-        if open_tab_index == 0:
-            basic_info_dict = {}
-            basic_info_layout = self.basic_info_widget.widget().layout()
-
-            for widget_pos in range(0, basic_info_layout.count() - 1, 2):
-                lbl = basic_info_layout.itemAt(widget_pos).widget().text()
-                widget = basic_info_layout.itemAt(widget_pos + 1).widget()
-                if widget is None:
-                    widget = basic_info_layout.itemAt(widget_pos + 1).layout()
-
-                widget_type = type(widget)
-                if widget_type is QLineEdit:
-                    if len(self.articles_ids) > 1:
-                        if lbl == 'title':
-                            value = None
-                        else:
-                            value = widget.text()
-                    else:
-                        value = widget.text()
-                elif widget_type is QTextEdit:
-                    value = widget.toPlainText()
-                elif widget_type is QHBoxLayout:
-                    value = []
-                    for btn_pos in range(0, widget.count() - 2, 1):
-                        btn = widget.itemAt(btn_pos).widget()
-                        value.append(btn.text())
-                elif widget_type is QComboBox:
-                    value = widget.currentIndex()
-                if value is not []:
-                    basic_info_dict[lbl] = value
-                else:
-                    basic_info_dict[lbl] = None
-
-            update_dict = {**basic_info_dict}
-
-        elif open_tab_index == 1:
-            if self.file_specific_layout is not None:
-                file_specific_dict = {}
-                file_specific_layout = self.file_specific_layout.widget().layout()
-
-                for widget_pos in range(0, file_specific_layout.count() - 1, 2):
-                    lbl = file_specific_layout.itemAt(widget_pos).widget().text()
-                    widget = file_specific_layout.itemAt(widget_pos + 1).widget()
-
-                    widget_type = type(widget)
-                    if widget_type is QLineEdit:
-                        value = widget.text()
-
-                    elif widget_type is QTextEdit:
-                        value = widget.toPlainText()
-
-                    if value is not [] and value is not '':
-                        file_specific_dict[lbl] = value
-                    else:
-                        file_specific_dict[lbl] = None
-
-                update_dict = {**file_specific_dict}
-
-        if len(self.articles_ids) > 1:
-            articles = self.main_window.articles
-            for article_id in self.articles_ids:
-                a_id = int(article_id)
-                article = articles[a_id]
-                article.update_info(update_dict)
-                upload_dict = article.get_upload_dict()
-                Projects.update_article(self.token, a_id, upload_dict)
-                private_modified_date = Projects(self.token).get_article(self.project_id, a_id)['modified_date']
-                article.figshare_metadata['modified_date'] = private_modified_date
-                article.check_uptodate()
+        if all_errors == []:
+            msg = "All articles updated"
+            resp = QMessageBox.information(self, "Update Confirmation", msg, QMessageBox.Ok)
         else:
-            a_id = self.articles_ids[0]
-            article = self.main_window.articles[a_id]
+            msg_box = QMessageBox()
+            msg_box.setIcon(QMessageBox.Warning)
+            msg_box.setText("Error in update.")
+            detailed_msg = ""
+            for err in all_errors:
+                for arg in err.args:
+                    detailed_msg += arg + '\n'
+            msg_box.setDetailedText(detailed_msg)
+            msg_box.setStandardButtons(QMessageBox.Ok)
+            msg_box.show()
+
+    def update_single_article(self, article_id):
+        """
+        Updates a single figshare article
+        :param article_id:
+        :return:
+        """
+        err_figshare = self.update_article_figshare_metadata(article_id)
+
+        if self.file_metadata is not None:
+            err_filespecific = self.update_article_file_metadata(article_id)
+
+        errors = []
+        if err_figshare is not None:
+            errors.append(err_figshare)
+        if err_filespecific is not None:
+            errors.append(err_filespecific)
+
+        return errors
+
+    def update_article_figshare_metadata(self, article_id):
+        """
+        Updates the figshare metadata of a single article
+        :param article_id:
+        :return:
+        """
+        # Get the current/old figshare metadata
+        article = self.parent.figshare_articles[str(article_id)]
+        old_figshare_metadata = article.figshare_metadata
+
+        # Get the new/edited figshare metadata
+        new_figshare_metadata = {}
+        figshare_grid = self.figshare_tab.widget().layout()
+
+        # Title
+        title = figshare_grid.itemAtPosition(0, 1).widget().text()
+        new_figshare_metadata['title'] = title
+        # Description
+        description = figshare_grid.itemAtPosition(1, 1).widget().toPlainText()
+        new_figshare_metadata['description'] = description
+        # References
+        references = figshare_grid.itemAtPosition(2, 1).widget().get_tags()
+        new_figshare_metadata['references'] = references
+        # Categories
+        cat_list = figshare_grid.itemAtPosition(3, 1).widget().get_tags()
+        categories = [int(i) for i in cat_list]
+        new_figshare_metadata['categories'] = categories
+        # Authors
+        auth_list = figshare_grid.itemAtPosition(4, 1).widget().get_tags()
+        authors = [{'id': int(i)} for i in auth_list]
+        new_figshare_metadata['authors'] = authors
+        # Defined Type
+        defined_type = figshare_grid.itemAtPosition(5, 1).widget().currentText()
+        new_figshare_metadata['defined_type'] = defined_type
+        # Funding
+        fund_tags = figshare_grid.itemAtPosition(6, 1).widget().get_tags()
+        funding = ''
+        for tag in fund_tags:
+            funding += tag + ':_:'
+        new_figshare_metadata['funding'] = funding
+        # License
+        license = figshare_grid.itemAtPosition(7, 1).widget().currentIndex()
+        new_figshare_metadata['license'] = license
+
+        # Create an empty dictionary to add updates/edits
+        update_dict = {}
+
+        # Check for changes
+        for key, value in new_figshare_metadata.items():
+
+            if value != 'None' and value is not None and value != '':
+                if value != old_figshare_metadata[key]:
+                    update_dict[key] = value
+
+        try:
+            project = Projects(self.token)
+            proj_info = project.update_article(self.token, article_id, update_dict)
+
+            # Update local version of article
             article.update_info(update_dict)
-            upload_dict = article.get_upload_dict()
-            Projects.update_article(self.token, a_id, upload_dict)
-            private_modified_date = Projects(self.token).get_article(self.project_id, a_id)['modified_date']
-            article.figshare_metadata['modified_date'] = private_modified_date
-            article.check_uptodate()
 
-    def article_label_font(self):
-        """
-        Returns the font to use for label fields.
-        :return: QFont.
-        """
-        window_size = self.geometry()
-        s = window_size.height() / 20
-        max_s = 14
-        min_s = 10
-        if s < min_s:
-            s = min_s
-        elif max_s < s:
-            s = max_s
-        lbl_font = QFont('SansSerif', s)
-        lbl_font.setBold(True)
+            return None
+        except HTTPError as err:
+            return err
+        except TypeError as err:
+            return err
+        except ValueError as err:
+            return err
 
-        return lbl_font
-
-    def article_edit_font(self):
+    def update_article_file_metadata(self, article_id):
         """
-        Returns the font to use for edit fields.
-        :return: QFont.
-        """
-        window_size = self.geometry()
-        s = window_size.height() / 25
-        max_s = 12
-        min_s = 7
-        if s < min_s:
-            s = min_s
-        elif max_s < s:
-            s = max_s
-        edit_font = QFont('SansSerif', s)
-
-        return edit_font
-
-    def add_lineedit(self, layout, label, value, row=None, column=None, rowspan=None, columnspan=None):
-        """
-        Use this to add a QLabel, QLineEdit pair from the given values to the provided layout. If the layout is a
-        QGridLayout then the row and column values are required.
-        :param layout: QLayout to add widgets to.
-        :param label: String to name the line edit field.
-        :param value: String to fill the line edit field.
-        Optional
-        :param row: Grid row to add widgets from.
-        :param column: Grid column to add widgets to.
-        :param rowspan: Grid rows to span each widget.
-        :param columnspan: Grid columns to span each widget.
+        Updates an articles custom fields metadata
+        :param article_id: int. Figshare article id number
         :return:
         """
-        # Create the QLabel
-        lbl = QLabel(label)
-        lbl.setFont(self.label_font)
-        # Create the QLineEdit
-        edit = QLineEdit(value)
-        edit.setFont(self.edit_font)
+        # Get the current/old file specific metadata
+        article = self.parent.figshare_articles[str(article_id)]
+        old_file_dicts = article.input_dicts()[2:]
+        old_file_metadata = {}
+        for d in old_file_dicts:
+            for key, value in d.items():
+                old_file_metadata[key] = value
 
-        if type(layout) is QGridLayout:
-            if rowspan is not None and columnspan is not None:
-                layout.addWidget(lbl, row, column, rowspan, columnspan)
-                layout.addWidget(edit, row + rowspan + 1, column, rowspan, columnspan)
-            else:
-                layout.addWidget(lbl, row, column)
-                layout.addWidget(edit, row + 1, column)
+        # Get the new/edited figshare metadata
+        new_file_metadata = {}
+        file_grid = self.filespecific_tab.widget().layout()
 
-        else:
-            layout.addWidget(lbl)
-            layout.addWidget(edit)
+        # Get the number of rows in the grid layout
+        n_rows = file_grid.rowCount()
 
-    def add_textedit(self, layout, label, value, row=None, column=None, rowspan=None, columnspan=None):
-        """
-        Use this to add a QLabel, QTextEdit pair from the given values to the provided layout. If the layout is a
-        QGridLayout then the row and column values are required.
-        :param layout: QLayout to add widgets to.
-        :param label: String. Name for label.
-        :param value: String. Text to fill QTextEdit with.
-        Optional
-        :param row: int. QGridLayout row from which to add widgets.
-        :param column: int. QGridLayout column to add widgets to.
-        :param rowspan: int. Number of rows to span widgets.
-        :param columnspan: int. Number of columns to span widgets.
-        :return:
-        """
-        # Create the QLabel
-        lbl = QLabel(label)
-        lbl.setFont(self.label_font)
-        # Create the QLineEdit
-        edit = QTextEdit(value)
-        edit.setFont(self.edit_font)
-        edit.setTabChangesFocus(True)
+        # Get the new file metadata
+        for row in range(n_rows):
+            lbl = file_grid.itemAtPosition(row, 0).widget().text()
+            edit = file_grid.itemAtPosition(row, 1).widget().text()
 
-        if type(layout) is QGridLayout:
-            if rowspan is not None and columnspan is not None:
-                layout.addWidget(lbl, row, column, rowspan, columnspan)
-                layout.addWidget(edit, row + rowspan + 1, column, rowspan, columnspan)
-            else:
-                layout.addWidget(lbl, row, column)
-                layout.addWidget(edit, row + 1, column)
-        else:
-            layout.addWidget(lbl)
-            layout.addWidget(edit)
+            new_file_metadata[lbl] = edit
 
-    def add_buttonlist(self, layout, label, values, key=None, row=None, column = None, rowspan=None,
-                       columnspan=None):
-        """
-        Add an array of buttons to a layout that can be used to display arrays of data, e.g. tags or categories.
-        The ability to add and remove items from the array is also added.
-        :param layout: QLayout. Layout to add widgets to.
-        :param label: String. Name of the field, e.g. tags, or categories.
-        :param values: list. List of either strings or dictionary objects.
-        Optional
-        :param key: Dictionary Key. If the values given are in a dictionary object a dictionary key must also be provided.
-        :param row: int. QGridLayout row from which to add widgets.
-        :param column: int. QGridLayout column to add widgets to.
-        :param rowspan: int. Number of rows to span widgets.
-        :param columnspan: int. Number of columns to span widgets.
-        :return:
-        """
-        # Create Qlabel for edit field.
-        lbl = QLabel(label)
-        lbl.setFont(self.label_font)
-        # Create layout for buttons.
-        hbox = QHBoxLayout()
-        # Define a size policy for the buttons
-        btn_sizePolicy = QSizePolicy()
-        btn_sizePolicy.setHorizontalPolicy(QSizePolicy.Expanding)
-        btn_sizePolicy.setVerticalPolicy(QSizePolicy.Preferred)
-        # Create a QButtonGroup
-        btn_group = QButtonGroup()
-        self.button_groups[label] = btn_group
-        btn_group_id = 1
-        # Create buttons and add to group and layout.
-        list_element_type = type(values[0])
-        if list_element_type is dict:
-            for element in values:
-                btn_str = str(element[key])
-                btn = QPushButton(btn_str)
-                btn.setFont(self.edit_font)
-                btn.setFlat(True)
-                btn.setSizePolicy(btn_sizePolicy)
-                btn_group.addButton(btn, btn_group_id)
-                hbox.addWidget(btn)
-                btn_group_id += 1
-        elif list_element_type is list:
-            for element in values:
-                btn_str = str(element)
-                btn = QPushButton(btn_str)
-                btn.setFont(self.edit_font)
-                btn.setSizePolicy(btn_sizePolicy)
-                btn_group.addButton(btn, btn_group_id)
-                hbox.addWidget(btn)
-                btn_group_id += 1
+        # Check for changes
+        update_dict = {}
+        for key, value in new_file_metadata.items():
+            if value != 'None':
+                if value != old_file_metadata[key]:
+                    update_dict[key] = value
 
-        txt_sizePolicy = QSizePolicy()
-        txt_sizePolicy.setVerticalPolicy(QSizePolicy.Preferred)
-        txt_sizePolicy.setHorizontalPolicy(QSizePolicy.Preferred)
+        # Update local version of article
+        article.update_info(update_dict)
 
-        new_btn = QTextEdit()
-        new_btn.setFont(self.edit_font)
-        new_btn.setSizePolicy(txt_sizePolicy)
-        hbox.addWidget(new_btn)
+        # Reformat update dictionary
+        update_dict = {'custom_fields': update_dict}
 
-        options_layout = QVBoxLayout()
+        try:
+            project = Projects(self.token)
+            proj_info = project.update_article(self.token, article_id, update_dict)
 
-        options_btn_size_policy = QSizePolicy()
-        options_btn_size_policy.setHorizontalPolicy(QSizePolicy.Preferred)
-        options_btn_size_policy.setVerticalPolicy(QSizePolicy.Expanding)
+            # Update local version of article
+            article.update_info(update_dict)
 
-        delete_btn = QPushButton()
-        delete_btn.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/exit.png')))
-        delete_btn.setSizePolicy(options_btn_size_policy)
-        delete_btn.pressed.connect(lambda: self.on_delete_button_from_list(btn_group, hbox))
-        options_layout.addWidget(delete_btn)
+            return None
+        except HTTPError as err:
+            return err
+        except TypeError as err:
+            return err
+        except ValueError as err:
+            return err
 
-        add_btn = QPushButton()
-        add_btn.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/Plus-50.png')))
-        add_btn.setSizePolicy(options_btn_size_policy)
-        add_btn.pressed.connect(lambda: self.on_add_button_to_list(btn_group, hbox, new_btn))
-        options_layout.addWidget(add_btn)
-
-        hbox.addLayout(options_layout)
-
-        if type(layout) is QGridLayout:
-            if rowspan is not None and columnspan is not None:
-                layout.addWidget(lbl, row, column, rowspan, columnspan)
-                layout.addLayout(hbox, row + rowspan + 1, column, rowspan, columnspan)
-            else:
-                layout.addWidget(lbl, row, column)
-                layout.addLayout(hbox, row + 1, column)
-        else:
-            layout.addWidget(lbl)
-            layout.addLayout(hbox)
-
-    def on_delete_button_from_list(self, button_group, layout):
-        """
-        Removes a button from a layout and button group.
-        :param button_group: QButtonGroup of button to be deleted.
-        :param layout: QLayout button is in.
-        :return:
-        """
-        btn_to_delete = button_group.checkedButton()
-
-        button_group.removeButton(btn_to_delete)
-        layout.removeWidget(btn_to_delete)
-        btn_to_delete.deleteLater()
-
-    def on_add_button_to_list(self, button_group, layout, textedit, overide_str=None):
-        """
-        Adds a button to a specified button group and layout.
-        :param button_group: QButtonGroup button is to be added to.
-        :param layout: QLayout button is to be added to.
-        :param lineedit: QLineEdit containing the new button string.
-        :return:
-        """
-        if overide_str is not None:
-            new_btn_str = overide_str
-        else:
-            new_btn_str = textedit.toPlainText()
-            textedit.clear()
-        new_btn = QPushButton(new_btn_str)
-        new_btn.setFont(self.edit_font)
-        new_btn.setFlat(True)
-        new_btn.setCheckable(True)
-        new_btn.toggle()
-        size_policy = QSizePolicy()
-        size_policy.setHorizontalPolicy(QSizePolicy.Expanding)
-        size_policy.setVerticalPolicy(QSizePolicy.Preferred)
-        new_btn.setSizePolicy(size_policy)
-
-        button_group.addButton(new_btn)
-        inset_pos = layout.count() - 2
-        layout.insertWidget(inset_pos, new_btn)
-
-    def add_dropdownlist(self, layout, label, values, row=None, column=None, rowspan=None, columnspan=None):
-        """
-        Adds a drop down list to the given layout.
-        :param layout: QLayout to add widget to.
-        :param label: String containing the list title.
-        :param values: List containing dropdown items.
-        Optional
-        :param row: int. If layout is a QGridLayout then the row must be given.
-        :param column: int. If the layout is a QGridLayout then the column must be given.
-        :param rowspan: int. For how many rows widget will span in QGridLayout.
-        :param columnspan: int. For how many columns widget will span in QGridLayout.
-        :return:
-        """
-        size_policy = QSizePolicy()
-        size_policy.setHorizontalPolicy(QSizePolicy.Expanding)
-        size_policy.setVerticalPolicy(QSizePolicy.Preferred)
-
-        lbl = QLabel(label)
-        lbl.setFont(self.label_font)
-        lbl.setSizePolicy(size_policy)
-
-        drop_menu = QComboBox()
-        drop_menu.addItems(values)
-        drop_menu.setFont(self.edit_font)
-        drop_menu.setSizePolicy(size_policy)
-
-        if type(layout) is QGridLayout:
-            if rowspan is not None and columnspan is not None:
-                layout.addWidget(lbl, row, column, rowspan, columnspan)
-                layout.addWidget(drop_menu, row + rowspan + 1, column, rowspan, columnspan)
-            else:
-                layout.addWidget(lbl, row, column)
-                layout.addWidget(drop_menu, row + 1, column)
-        else:
-            layout.addWidget(lbl)
-            layout.addWidget(drop_menu)

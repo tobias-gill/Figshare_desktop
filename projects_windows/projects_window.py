@@ -311,23 +311,41 @@ class ProjectsWindow(QMdiSubWindow):
         Called when a project is clicked.
         :return:
         """
+        # For if there is already a project info window open
         if 'project_info_window' in self.open_windows:
+            # Get the project id number of the current window
             open_proj = self.parent.project_info_window.project_id
+
+            # For a different project than the currently open project
             if open_proj != project_id:
+                # If the current project is in the current view of project buttons (it may have been scrolled away from)
                 if open_proj in self.buttons:
+                    # If that button is checked, uncheck it
                     if self.buttons[open_proj].isChecked():
                         self.buttons[open_proj].toggle()
+                # Close the currently open project info window
                 self.parent.project_info_window.close()
+                # Create a new project info window for the different project
                 self.parent.project_info_window = ProjectInfoWindow(self.app, self.token, self.parent, project_id)
+                # Add it as a sub window to the framing window
                 self.parent.mdi.addSubWindow(self.parent.project_info_window)
                 self.parent.project_info_window.show()
 
+            # If the current projects button is pressed
             else:
+                # Close the window and remove from the open window list
                 self.open_windows.remove('project_info_window')
                 self.parent.project_info_window.close()
+
+            # If any sub windows are open close them as well
             if 'project_articles_window' in self.open_windows:
                 self.open_windows.remove('project_articles_window')
                 self.parent.project_articles_window.close()
+            if 'article_edit_window' in self.open_windows:
+                self.open_windows.remove('article_edit_window')
+                self.parent.article_edit_window.close()
+
+        # For when no project info window is open
         else:
             self.open_windows.add('project_info_window')
             self.parent.project_info_window = ProjectInfoWindow(self.app, self.token, self.parent, project_id)

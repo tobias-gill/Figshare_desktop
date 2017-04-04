@@ -346,7 +346,7 @@ class ArticleList(QWidget):
     # Figshare Article Functions
     #####
 
-    def    does_article_exist_locally(self, article_id):
+    def does_article_exist_locally(self, article_id):
         """
         Checks to see if there is a local version of the article.
         :param article_id: int. Figshare article id number

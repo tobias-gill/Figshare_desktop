@@ -15,6 +15,8 @@ from Figshare_desktop.custom_widgets.article_list import ArticleList
 
 from Figshare_desktop.formatting.formatting import (grid_label, grid_edit, press_button)
 
+from Figshare_desktop.article_edit_window.article_edit_window import ArticleEditWindow
+
 from figshare_interface import (Groups, Projects)
 from figshare_interface.http_requests.figshare_requests import (download_file)
 
@@ -167,7 +169,18 @@ class ProjectsArticlesWindow(QMdiSubWindow):
         Called when the edit article button is pressed. Opens the edit window
         :return:
         """
-        pass
+
+        # Get the list of article id numbers from the selected items in the article list widget
+        article_ids = list(self.article_list_widget.get_selection())
+
+        self.parent.open_windows.remove('project_articles_window')
+        self.parent.project_articles_window.close()
+
+        self.parent.open_windows.add('article_edit_window')
+        self.parent.article_edit_window = ArticleEditWindow(self.app, self.token, self.parent, self.project_id,
+                                                            article_ids)
+        self.parent.mdi.addSubWindow(self.parent.article_edit_window)
+        self.parent.article_edit_window.show()
 
     def on_publish_article_pressed(self):
         """

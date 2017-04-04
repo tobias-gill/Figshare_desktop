@@ -127,6 +127,11 @@ class sectionWindow(QMdiSubWindow):
                 self.open_windows.remove('project_articles_window')
                 self.parent.project_articles_window.close()
 
+            # Check to see if the article edit window is open
+            if 'article_edit_window' in self.open_windows:
+                self.open_windows.remove('article_edit_window')
+                self.parent.article_edit_window.close()
+
         # Check to see if the create new project window is open
         elif 'new_project_window' in self.open_windows:
             self.open_windows.remove('new_project_window')
