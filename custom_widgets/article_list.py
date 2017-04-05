@@ -2,9 +2,11 @@
 
 """
 import collections
+import time
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QProgressBar, QAbstractItemView, QTreeWidget, QTreeWidgetItem,
-                             QLineEdit, QHBoxLayout, QComboBox, QPushButton, QDialog, QGridLayout, QSizePolicy)
+                             QLineEdit, QHBoxLayout, QComboBox, QPushButton, QDialog, QGridLayout, QSizePolicy,
+                             QCheckBox)
 from PyQt5.QtCore import (QThread, pyqtSignal, pyqtSlot, QObject)
 
 from Figshare_desktop.formatting.formatting import (search_bar, search_combo, press_button)
@@ -23,6 +25,8 @@ __status__ = "Development"
 
 
 class ArticleList(QWidget):
+
+    sig_abort_load = pyqtSignal()
 
     def __init__(self, app, OAuth_token, project_id, parent):
         super().__init__()
@@ -47,20 +51,17 @@ class ArticleList(QWidget):
         articles = projects.list_articles(self.project_id)
         n_articles = len(articles)
 
-        #if show_progress:
-        #    bar = ArticleLoadBar(n_articles, self.parent)
-
-        worker = ArticleLoadWorker(self.token, self.parent, self.project_id, articles)
+        worker = ArticleLoadWorker(self.app, self.token, self.parent, self.project_id, articles)
 
         thread = QThread()
         thread.setObjectName('thread_article_load')
 
         self.__threads.append((thread, worker))
-
         worker.moveToThread(thread)
 
-        worker.sig_debug.connect(self.debug)
         worker.sig_step.connect(self.add_to_tree)
+        worker.sig_done.connect(self.enable_fields)
+
         thread.started.connect(worker.work)
         thread.start()
 
@@ -68,11 +69,6 @@ class ArticleList(QWidget):
         self.article_ids = set()
         for article in articles:
             self.article_ids.add(article['id'])
-
-    @pyqtSlot(str)
-    def debug(self, msg: str):
-        print('test')
-        print(msg)
 
     def initUI(self):
 
@@ -123,11 +119,6 @@ class ArticleList(QWidget):
         tree.setHeaderItem(header_item)
 
         self.tree = tree
-        #self.fill_tree(headers)
-
-        # Adjust the size of the columns to the contents
-        #for column in range(self.tree.columnCount()):
-        #    self.tree.resizeColumnToContents(column)
 
         self.tree_headers = headers
 
@@ -152,6 +143,8 @@ class ArticleList(QWidget):
         edit.returnPressed.connect(self.search_on_return)
         edit.children()[2].triggered.connect(self.search_on_clear)
 
+        edit.setEnabled(False)
+
         self.search_edit = edit
         return self.search_edit
 
@@ -169,6 +162,8 @@ class ArticleList(QWidget):
 
         combo.addItem('')
         combo.addItems(self.get_fields())
+        combo.setEnabled(False)
+
         self.search_field_combo = combo
         return self.search_field_combo
 
@@ -181,13 +176,23 @@ class ArticleList(QWidget):
         press_button(self.app, btn)
         btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         btn.clicked[bool].connect(self.on_headers_set_pressed)
-
-        return btn
+        btn.setEnabled(False)
+        self.headers_btn = btn
+        return self.headers_btn
 
 
     #####
     # Widgets Actions
     #####
+
+    def enable_fields(self):
+        """
+        Enables all fields
+        :return:
+        """
+        self.search_edit.setEnabled(True)
+        self.search_field_combo.setEnabled(True)
+        self.headers_btn.setEnabled(True)
 
     def fill_tree(self, headers):
         """
@@ -214,6 +219,10 @@ class ArticleList(QWidget):
         local_article = self.parent.figshare_articles[article_id]
         local_article.gen_qtree_item(self.tree_headers, local_article.input_dicts())
         self.tree.addTopLevelItem(local_article.qtreeitem)
+
+        # Adjust the size of the columns to the contents
+        for column in range(self.tree.columnCount()):
+            self.tree.resizeColumnToContents(column)
 
     def update_headers(self, headers):
         """
@@ -466,13 +475,13 @@ class ArticleList(QWidget):
 class ArticleLoadWorker(QObject):
 
     sig_step = pyqtSignal(int)
-    sig_debug = pyqtSignal(str)
+    sig_done = pyqtSignal(bool)
 
-    def __init__(self, OAuth_token: str, parent, project_id: int, articles: list):
+    def __init__(self, app, OAuth_token: str, parent, project_id: int, articles: list):
         super().__init__()
-        self.sig_debug.emit('0')
         self.__abort = False
 
+        self.app = app
         self.token = OAuth_token
         self.parent = parent
         self.project_id = project_id
@@ -486,16 +495,20 @@ class ArticleLoadWorker(QObject):
 
         :return:
         """
-        self.sig_debug.emit('1')
         if self.n_articles > 0:
             for article in self.articles:
                 self.create_local_article(article)
                 self.sig_step.emit(article['id'])
 
+            self.sig_done.emit(True)
+
+    def abort(self):
+        self.__abort = True
+
     def create_local_article(self, article):
         """
         Given a Figshare article id number this function will create a local version if one does not already exist
-        :param figshare_article: Dict. Figshare article returned from Projects.list_articles()
+        :param article: Dict. Figshare article returned from Projects.list_articles()
         :return:
         """
         # Get the article id number and title
