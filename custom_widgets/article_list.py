@@ -4,10 +4,8 @@
 import collections
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QProgressBar, QAbstractItemView, QTreeWidget, QTreeWidgetItem,
-                             QLineEdit, QHBoxLayout, QComboBox, QPushButton, QDialog, QGridLayout, QSizePolicy,
-                             QCheckBox)
-from PyQt5.QtGui import (QFont, QColor, QPainter)
-from PyQt5.QtCore import (Qt, QRect)
+                             QLineEdit, QHBoxLayout, QComboBox, QPushButton, QDialog, QGridLayout, QSizePolicy)
+from PyQt5.QtCore import (QThread, pyqtSignal, pyqtSlot, QObject)
 
 from Figshare_desktop.formatting.formatting import (search_bar, search_combo, press_button)
 
@@ -34,6 +32,8 @@ class ArticleList(QWidget):
         self.project_id = project_id
         self.parent = parent
 
+        self.__threads = []
+
         self.initFig()
         self.initUI()
 
@@ -47,25 +47,32 @@ class ArticleList(QWidget):
         articles = projects.list_articles(self.project_id)
         n_articles = len(articles)
 
-        if n_articles > 0 :
+        #if show_progress:
+        #    bar = ArticleLoadBar(n_articles, self.parent)
 
-            if show_progress:
-                # Create progress bar
-                bar = ArticleLoadBar(n_articles, self.parent)
+        worker = ArticleLoadWorker(self.token, self.parent, self.project_id, articles)
 
-            # Create Local Versions of articles
-            article_ids = set()
-            if show_progress:
-                step = 0  # Keep track of how many articles created for progress bar
-            for article in articles:
-                article_ids.add(article['id'])
-                self.create_local_article(article)
-                if show_progress:
-                    bar.update_progress(step)  # Update progress par
-                    step += 1  # Increase progress bar step
+        thread = QThread()
+        thread.setObjectName('thread_article_load')
 
-        self.article_ids = article_ids
+        self.__threads.append((thread, worker))
+
+        worker.moveToThread(thread)
+
+        worker.sig_debug.connect(self.debug)
+        worker.sig_step.connect(self.add_to_tree)
+        thread.started.connect(worker.work)
+        thread.start()
+
         self.articles = articles
+        self.article_ids = set()
+        for article in articles:
+            self.article_ids.add(article['id'])
+
+    @pyqtSlot(str)
+    def debug(self, msg: str):
+        print('test')
+        print(msg)
 
     def initUI(self):
 
@@ -116,11 +123,11 @@ class ArticleList(QWidget):
         tree.setHeaderItem(header_item)
 
         self.tree = tree
-        self.fill_tree(headers)
+        #self.fill_tree(headers)
 
         # Adjust the size of the columns to the contents
-        for column in range(self.tree.columnCount()):
-            self.tree.resizeColumnToContents(column)
+        #for column in range(self.tree.columnCount()):
+        #    self.tree.resizeColumnToContents(column)
 
         self.tree_headers = headers
 
@@ -195,6 +202,18 @@ class ArticleList(QWidget):
             local_article.gen_qtree_item(headers, local_article.input_dicts())  # Update the article qtreeitem
             self.tree.addTopLevelItem(local_article.qtreeitem)  # Add the article qtree item to the tree
 
+    @pyqtSlot(int)
+    def add_to_tree(self, article_id: int):
+        """
+        Adds a single article to the QTree
+        :param headers: list of strings.
+        :param article_id: int. or str. figshare article id
+        :return:
+        """
+        article_id = str(article_id)
+        local_article = self.parent.figshare_articles[article_id]
+        local_article.gen_qtree_item(self.tree_headers, local_article.input_dicts())
+        self.tree.addTopLevelItem(local_article.qtreeitem)
 
     def update_headers(self, headers):
         """
@@ -442,6 +461,66 @@ class ArticleList(QWidget):
 
         else:
             return []
+
+
+class ArticleLoadWorker(QObject):
+
+    sig_step = pyqtSignal(int)
+    sig_debug = pyqtSignal(str)
+
+    def __init__(self, OAuth_token: str, parent, project_id: int, articles: list):
+        super().__init__()
+        self.sig_debug.emit('0')
+        self.__abort = False
+
+        self.token = OAuth_token
+        self.parent = parent
+        self.project_id = project_id
+        self.articles = articles
+
+        self.n_articles = len(articles)
+
+    @pyqtSlot()
+    def work(self):
+        """
+
+        :return:
+        """
+        self.sig_debug.emit('1')
+        if self.n_articles > 0:
+            for article in self.articles:
+                self.create_local_article(article)
+                self.sig_step.emit(article['id'])
+
+    def create_local_article(self, article):
+        """
+        Given a Figshare article id number this function will create a local version if one does not already exist
+        :param figshare_article: Dict. Figshare article returned from Projects.list_articles()
+        :return:
+        """
+        # Get the article id number and title
+        article_id = str(article['id'])  # Convert int to str
+        article_title = article['title']
+
+        # If article is not already stored locally create a
+        if not self.does_article_exist_locally(article_id):
+            article = gen_article(article_title, self.token, self.project_id, article_id)
+            self.parent.figshare_articles[article_id] = article
+
+    def does_article_exist_locally(self, article_id):
+        """
+        Checks to see if there is a local version of the article.
+        :param article_id: int. Figshare article id number
+        :return: Bool. Dependent on if local version of article exists or not
+        """
+
+        # Convert article id to a string. Should have already been done, but just in case we call it somewhere else
+        a_id = str(article_id)
+
+        if a_id in self.parent.figshare_articles:
+            return True
+        else:
+            return False
 
 
 class OrderedSet(collections.OrderedDict, collections.MutableSet):
