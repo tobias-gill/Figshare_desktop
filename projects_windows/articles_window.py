@@ -17,6 +17,8 @@ from Figshare_desktop.formatting.formatting import (grid_label, grid_edit, press
 
 from Figshare_desktop.article_edit_window.article_edit_window import ArticleEditWindow
 
+from Figshare_desktop.figshare_articles.determine_type import gen_article
+
 from figshare_interface import (Groups, Projects)
 from figshare_interface.http_requests.figshare_requests import (download_file)
 
@@ -187,7 +189,54 @@ class ProjectsArticlesWindow(QMdiSubWindow):
         Called when the publish article button is pressed. Asks for confirmation.
         :return:
         """
-        pass
+        article_ids = self.article_list_widget.get_selection()
+
+        if article_ids == set():
+            article_ids = self.article_list_widget.get_all()
+            n_article = 'All'
+        else:
+            n_article = len(article_ids)
+
+        # Ask for publish confirmation
+        msg = "Are you sure you want to make {} articles public?".format(n_article)
+        reply = QMessageBox.question(self, "Publish Confirmation", msg, QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            errors = self.publish_articles(article_ids)
+
+            if errors is not None:
+                msg_box = QMessageBox()
+                msg_box.setIcon(QMessageBox.Warning)
+                msg_box.setText("Error occurred when publishing.")
+                detailed_msg = ""
+                for err in errors:
+                    for arg in err.args:
+                        detailed_msg += arg + '\n'
+                        detailed_msg += str(err.response.content)
+                    detailed_msg += '\n'
+                msg_box.setDetailedText(detailed_msg)
+                msg_box.setStandardButtons(QMessageBox.Ok)
+                msg_box.show()
+
+                msg_box.buttonClicked.connect(self.reopen_window)
+
+            else:
+                msg = "All articles published"
+                reply = QMessageBox.information(self, "Articles Published", msg, QMessageBox.Ok)
+                if reply == QMessageBox.Ok:
+                    self.reopen_window()
+                else:
+                    self.reopen_window()
+
+        else:
+            pass
+
+    def reopen_window(self):
+        """
+        Closes and reopens the article window
+        :return:
+        """
+        for i in range(2):
+            self.parent.project_info_window.on_articles_pressed()
 
     def on_download_article_pressed(self):
         """
@@ -257,3 +306,45 @@ class ProjectsArticlesWindow(QMdiSubWindow):
                     pass
                 else:
                     pass
+    def publish_articles(self, article_ids):
+        """
+        Publishes all articles given
+        :param article_ids: list of int. Figshare article id numbers.
+        :return:
+        """
+        errors = []
+        for article in article_ids:
+            error = self.publish_article(article)
+            if error is not None:
+                errors.append(error)
+
+        if errors != []:
+            return errors
+        else:
+            return None
+
+    def publish_article(self, article_id):
+        """
+        Publishes a single article
+        :param article_id: int. Figshare article id number
+        :return:
+        """
+        try:
+            Projects.publish_article(self.token, article_id)
+            self.create_local_article(article_id)
+            return None
+        except HTTPError as err:
+            return err
+
+    def create_local_article(self, article_id):
+        """
+        Given a Figshare article id number this function will create a local version if one does not already exist
+        :param figshare_article: Dict. Figshare article returned from Projects.list_articles()
+        :return:
+        """
+        # Get the article id number and title
+        article_id = str(article_id)  # Convert int to str
+        article_title = self.parent.figshare_articles[article_id].figshare_metadata['title']
+
+        article = gen_article(article_title, self.token, self.project_id, article_id)
+        self.parent.figshare_articles[article_id] = article

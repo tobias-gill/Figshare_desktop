@@ -404,6 +404,7 @@ class ArticleEditWindow(QMdiSubWindow):
         :return:
         """
         self.update_all_articles(self.article_ids)
+
     #####
     # Figshare Actions
     #####
@@ -515,6 +516,9 @@ class ArticleEditWindow(QMdiSubWindow):
 
             # Update local version of article
             article.update_info(update_dict)
+
+            # Change up_to_date
+            article.figshare_metadata['up_to_date'] = False
 
             return None
         except HTTPError as err:

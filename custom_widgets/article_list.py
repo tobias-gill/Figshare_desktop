@@ -334,7 +334,8 @@ class ArticleList(QWidget):
         Can be called to return the article id numbers of all articles in the tree
         :return:
         """
-        items = self.tree.selectAll()
+        self.tree.selectAll()
+        items = self.tree.selectedItems()
 
         article_ids = set()
         for item in items:
