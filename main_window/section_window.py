@@ -74,6 +74,9 @@ class sectionWindow(QMdiSubWindow):
         # Store the section window geometry in the main window
         self.parent.section_geom = self.geometry()
 
+    #####
+    # Window Widgets
+    #####
 
     def button_layout(self):
         """
@@ -87,18 +90,25 @@ class sectionWindow(QMdiSubWindow):
         projects_btn = QPushButton('Projects', self)
         checkable_button(self.app, projects_btn)
         projects_btn.clicked[bool].connect(self.on_projects_btn_pressed)
+        self.projects_btn = projects_btn
 
         # Collections
         collections_btn = QPushButton('Collections', self)
         checkable_button(self.app, collections_btn)
 
+        self.collections_btn = collections_btn
+
         # Local Data
         localdata_btn = QPushButton('Local Data', self)
         checkable_button(self.app, localdata_btn)
+        localdata_btn.clicked[bool].connect(self.on_local_data_btn_pressed)
+        self.localdata_btn = localdata_btn
 
         # Selection
         selection_btn = QPushButton('Selection', self)
         checkable_button(self.app, selection_btn)
+
+        self.selection_btn = selection_btn
 
         # Add Buttons to Layout
         button_box.addWidget(projects_btn)
@@ -108,34 +118,27 @@ class sectionWindow(QMdiSubWindow):
 
         return button_box
 
+    #####
+    # Widget Actions
+    #####
+
     def on_projects_btn_pressed(self):
         """
         Called when the projects button is pressed. Is also called after some project information edits.
         """
+        # Check to see if any other sections windows are open
+        if 'local_data_window' in self.open_windows:
+            self.close_local_data_window()
+            if self.localdata_btn.isChecked():
+                self.localdata_btn.toggle()
+
         # Check to see if the projects window is already open
         if 'projects_window' in self.open_windows:
-            self.open_windows.remove('projects_window')
-            self.parent.projects_window.close()
-
-            # Check to see if a project information window is open
-            if 'project_info_window' in self.open_windows:
-                self.open_windows.remove('project_info_window')
-                self.parent.project_info_window.close()
-
-            # Check to see if a project articles window is open
-            if 'project_articles_window' in self.open_windows:
-                self.open_windows.remove('project_articles_window')
-                self.parent.project_articles_window.close()
-
-            # Check to see if the article edit window is open
-            if 'article_edit_window' in self.open_windows:
-                self.open_windows.remove('article_edit_window')
-                self.parent.article_edit_window.close()
+            self.close_projects_window()
 
         # Check to see if the create new project window is open
         elif 'new_project_window' in self.open_windows:
-            self.open_windows.remove('new_project_window')
-            self.parent.new_project_window.close()
+            self.close_new_projects_window()
 
         # If no projects windows are open then create a projects window and show
         elif 'projects_window' not in self.open_windows and 'new_project_window' not in self.open_windows:
@@ -143,3 +146,66 @@ class sectionWindow(QMdiSubWindow):
             self.parent.projects_window = ProjectsWindow(self.app, self.token, self.parent)
             self.parent.mdi.addSubWindow(self.parent.projects_window)
             self.parent.projects_window.show()
+
+    def on_local_data_btn_pressed(self):
+        """
+        Called when the local data button is pressed.
+        :return:
+        """
+
+        # Check to see if any other sections windows are open
+        if 'projects_window' in self.open_windows:
+            self.close_projects_window()
+            if self.projects_btn.isChecked():
+                self.projects_btn.toggle()
+        if 'new_project_window' in self.open_windows:
+            self.close_new_projects_window()
+            if self.projects_btn.isChecked():
+                self.projects_btn.toggle()
+
+        # Check to see if window is already open
+        if 'local_data_window' in self.open_windows:
+            self.close_local_data_window()
+
+        else:
+            self.open_windows.add('local_data_window')
+            self.parent.local_data_window = DataWindow(self.app, self.token, self.parent)
+            self.parent.mdi.addSubWindow(self.parent.local_data_window)
+            self.parent.local_data_window.show()
+
+    def close_projects_window(self):
+        """
+        Called to close the proejcts window and any children
+        :return:
+        """
+
+        self.open_windows.remove('projects_window')
+        self.parent.projects_window.close()
+
+        # Check to see if a project information window is open
+        if 'project_info_window' in self.open_windows:
+            self.open_windows.remove('project_info_window')
+            self.parent.project_info_window.close()
+
+        # Check to see if a project articles window is open
+        if 'project_articles_window' in self.open_windows:
+            self.open_windows.remove('project_articles_window')
+            self.parent.project_articles_window.close()
+
+        # Check to see if the article edit window is open
+        if 'article_edit_window' in self.open_windows:
+            self.open_windows.remove('article_edit_window')
+            self.parent.article_edit_window.close()
+
+    def close_new_projects_window(self):
+        """
+        Called to close the new projects window
+        :return:
+        """
+        self.open_windows.remove('new_project_window')
+        self.parent.new_project_window.close()
+
+    def close_local_data_window(self):
+
+        self.open_windows.remove('local_data_window')
+        self.parent.local_data_window.close()

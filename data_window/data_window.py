@@ -1,12 +1,15 @@
 import os
 import math
-from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QAbstractItemView, QMessageBox, QMainWindow,
-                             QFileDialog, QTreeWidgetItem, QHBoxLayout, QVBoxLayout, QSizePolicy, QTreeWidget)
+from PyQt5.QtWidgets import (QMdiSubWindow, QWidget, QLabel, QPushButton, QAbstractItemView, QMessageBox, QMainWindow,
+                             QFileDialog, QTreeWidgetItem, QHBoxLayout, QVBoxLayout, QSizePolicy, QTreeWidget,
+                             QFileSystemModel, QTreeView)
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QPoint)
 
+from Figshare_desktop.formatting.formatting import (press_button, checkable_button)
+
 from Figshare_desktop.figshare_articles.determine_type import gen_local_article
-from Figshare_desktop.article_edit_window.local_article_edit_window import LocalArticleEditWindow
+from Figshare_desktop.article_edit_window.local_article_edit_window import LocalMetadataWindow
 
 from figshare_interface import (Groups, Projects)
 
@@ -19,188 +22,185 @@ __email__ = "toby.gill.09@ucl.ac.uk"
 __status__ = "Development"
 
 
-class DataWindow(QWidget):
+class DataWindow(QMdiSubWindow):
 
-    def __init__(self, app, OAuth_token, main_window):
+    def __init__(self, app, OAuth_token, parent):
         super().__init__()
 
         self.app = app
         self.token = OAuth_token
-        self.main_window = main_window
+        self.parent = parent
 
         self.initUI()
 
     def initUI(self):
 
-        self.formatWindow()
+        # Format the window
+        self.format_window()
 
+        # Create a horizontal layout to hold the widgets
         hbox = QHBoxLayout()
-        vbox = QVBoxLayout()
 
-        hbox.addLayout(self.set_root_layout())
-        self.browser = self.set_file_browser()
-        hbox.addWidget(self.browser)
-        hbox.addLayout(self.selection_option_layout())
+        # Add the widgets
+        hbox.addWidget(self.set_directory_btn())
+        hbox.addWidget(self.create_file_browser())
+        hbox.addWidget(self.open_selection_btn())
 
-        vbox.addLayout(hbox)
-        self.setLayout(vbox)
+        # Create a central widget for the local data window
+        window_widget = QWidget()
+        # Add the vertical box layout
+        window_widget.setLayout(hbox)
+        # Set the projects window widget
+        self.setWidget(window_widget)
 
-        self.local_article_edit_window_open = False
+    def format_window(self):
+        """
+        Form the local data window
+        :return:
+        """
+        # Gets the QRect of the main window
+        geom = self.parent.geometry()
+        # Gets the Qrect of the sections window
+        section_geom = self.parent.section_geom
 
-    def formatWindow(self):
-        main_window_loc = self.main_window.geometry()
-        m_x0 = main_window_loc.x()
-        m_y0 = main_window_loc.y()
-        m_width = main_window_loc.width()
-        m_height = main_window_loc.height()
-
-        screen = self.app.primaryScreen().availableGeometry()
-
-        x0 = m_x0 + m_width + 10
-        y0 = m_y0
-        self.w_width = screen.width() - x0
-        self.w_height = screen.height() / 3
-
-        self.setGeometry(x0, y0, self.w_width, self.w_height)
-
+        # Define geometries for the projects window
+        x0 = section_geom.x() + section_geom.width()
+        y0 = section_geom.y()
+        w = geom.width() - x0
+        h = ((geom.height() - y0) / 3)
+        self.setGeometry(x0, y0, w, h)
+        # Remove frame from projects window
         self.setWindowFlags(Qt.FramelessWindowHint)
 
-    def closeEvent(self, event):
+    #####
+    # Window Widgets
+    #####
+
+    def set_directory_btn(self):
         """
-        When window is closed checks to see if the local_article_edit_window is open. If so, it too will be closed.
-        :param event: Close event.
+        Creates a QPushButton that can be used to set the current root directory
+        :return: QPushButton
+        """
+
+        btn = QPushButton()
+        btn.setIcon(QIcon(os.path.normpath(__file__ + '/../../img/Folder-48.png')))
+        press_button(self.app, btn)  # Format button
+        btn.setToolTip("Select local directory")
+        btn.setToolTipDuration(1)
+
+        btn.pressed.connect(self.on_set_directory_pressed)
+
+        return btn
+
+    def create_file_browser(self):
+        """
+        Creates a QTreeView with a QFileSystemModel that is used as a file browser
+        :return: QTreeview
+        """
+
+        self.browser = QTreeView()
+
+        # Set the model of the QTreeView
+        self.model = QFileSystemModel()
+        self.model.setRootPath('')  # Define the initial root directory
+        self.browser.setModel(self.model)
+
+        # Control how selection of items works
+        #self.browser.setSelectionBehavior(QAbstractItemView.SelectItems)  # Allow for only single item selection
+        self.browser.setSelectionMode(QAbstractItemView.ExtendedSelection)  # Alow for multiple rows to be selected
+
+        return self.browser
+
+    def open_selection_btn(self):
+        """
+        Creates a QPushButton that can be used to open the metadata window for the selected items in the file browser
+        :return: QPushButton
+        """
+        btn = QPushButton()
+        btn.setIcon(QIcon(os.path.normpath(__file__ + '/../../img/Insert Row Below-48.png')))
+        checkable_button(self.app, btn)  # Format button
+        btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        btn.setToolTip("Open metadata window for selection")
+        btn.setToolTipDuration(1)
+
+        btn.clicked[bool].connect(self.on_open_selection_clicked)
+
+        return btn
+
+    #####
+    # Widget Actions
+    #####
+
+    def on_set_directory_pressed(self):
+        """
+        Called when the set root directory button is pressed
         :return:
         """
+        dir_name = self.user_set_dir()
+        self.browser.setRootIndex(self.model.index(dir_name))
 
-        # Check to see if local_article_edit_window is open
-        if self.local_article_edit_window_open:
-            self.local_metadata_window.close()
-
-    def set_root_layout(self):
-        sizepolicy = QSizePolicy()
-        sizepolicy.setVerticalPolicy(QSizePolicy.Expanding)
-        sizepolicy.setVerticalPolicy(QSizePolicy.Preferred)
-
-        btn_setRoot = QPushButton()
-        btn_setRoot.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/Folder-48.png')))
-        btn_setRoot.setSizePolicy(sizepolicy)
-        btn_setRoot.pressed.connect(self.on_set_root_pressed)
-
-        layout = QVBoxLayout()
-        layout.addWidget(btn_setRoot)
-        return layout
-
-    def on_set_root_pressed(self):
-
-        dir_name = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
-
-        self.update_browser(dir_name)
-
-    def set_file_browser(self):
-
-        browser = QTreeWidget()
-        header_lst = ['Name', 'Type', 'Size', 'Full Path']
-        header = QTreeWidgetItem(header_lst)
-        browser.setHeaderItem(header)
-        browser.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        for column in range(len(header_lst)):
-            browser.resizeColumnToContents(column)
-        return browser
-
-    def update_browser(self, directory):
-
-        header_lst = ['Name', 'Type', 'Size', 'Full Path']
-
-        self.browser.clear()
-
-        dirname = directory.split('/')[-1]
-        tree_item = [directory, 'File Folder', '']
-        parent = QTreeWidgetItem(tree_item)
-
-        i = 0
-        for dirname, dirnames, filenames in os.walk(directory):
-
-            if i != 0:
-                tree_item = [dirname, 'File Folder', '', '']
-                child_dir = QTreeWidgetItem(tree_item)
-                parent.addChild(child_dir)
-
-                for subdirname in dirnames:
-                    tree_item = [subdirname, 'File Folder', '', '']
-                    child_sub_dir = QTreeWidgetItem(tree_item)
-                    child_dir.addChild(child_sub_dir)
-
-                for filename in filenames:
-                    file_type = filename.split('.')[-1].upper() + ' File'
-                    file_size = str(round(os.path.getsize(os.path.join(dirname, filename)) / 1000))
-                    tree_item = [filename, file_type, file_size, os.path.abspath(dirname + '/' + filename)]
-                    child_file = QTreeWidgetItem(tree_item)
-                    child_dir.addChild(child_file)
-            else:
-                for filename in filenames:
-                    file_type = filename.split('.')[-1].upper() + ' File'
-                    file_size = str(round(os.path.getsize(os.path.join(dirname, filename)) / 1000)) + ' KB'
-                    tree_item = [filename, file_type, file_size, os.path.abspath(dirname + '/' + filename)]
-                    child_file = QTreeWidgetItem(tree_item)
-                    parent.addChild(child_file)
-
-            i = 1
-            self.browser.addTopLevelItem(parent)
-        self.browser.expandToDepth(0)
-        for column in range(len(header_lst)):
-            self.browser.resizeColumnToContents(column)
-
-    def selection_option_layout(self):
-
-        sizepolicy = QSizePolicy()
-        sizepolicy.setVerticalPolicy(QSizePolicy.Expanding)
-        sizepolicy.setVerticalPolicy(QSizePolicy.Preferred)
-
-        btn_selection = QPushButton()
-        btn_selection.setIcon(QIcon(os.path.abspath(__file__ + '/../..' + '/img/Insert Row Below-48.png')))
-        btn_selection.setSizePolicy(sizepolicy)
-        btn_selection.setCheckable(True)
-        btn_selection.clicked[bool].connect(self.on_selection_pressed)
-        self.btn_selection = btn_selection
-        vbox = QVBoxLayout()
-
-        vbox.addWidget(self.btn_selection)
-
-        return vbox
-
-    def on_selection_pressed(self):
+    def user_set_dir(self):
         """
-        Actions to perform when the selected files are to be
+        Creates a QFileDialog that prompts the user to choose a root directory
+        :return: Sting. directory path
+        """
+        return str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+
+    def on_open_selection_clicked(self):
+        """
+        Called when the open selection button is clicked. Either open or closes the metadata window
         :return:
         """
+        if 'local_metadata_window' in self.parent.open_windows:
+            self.parent.open_windows.remove('local_metadata_window')
+            self.parent.local_metadata_window.close()
 
-        if self.local_article_edit_window_open:
-            self.local_article_edit_window_open = False
-            self.local_metadata_window.close()
         else:
-            self.local_article_edit_window_open = True
-            items = self.browser.selectedItems()
+            file_paths = self.get_selection_set()
 
-            header_item = self.browser.headerItem()
-            for column in range(header_item.columnCount()):
-                if header_item.data(column, 0) == 'Full Path':
-                    filename_element = column
-                elif header_item.data(column, 0) == 'Type':
-                    type_element = column
+            self.parent.open_windows.add('local_metadata_window')
+            self.parent.local_metadata_window = LocalMetadataWindow(self.app, self.token, self.parent, file_paths)
+            self.parent.mdi.addSubWindow(self.parent.local_metadata_window)
+            self.parent.local_metadata_window.show()
 
-            local_articles = self.main_window.local_articles
-            next_local_id = self.main_window.next_local_id
+    def get_selection_set(self):
+        """
+        Creates a set of selected item file paths.
+        :return:
+        """
+        # Get a list of selected items from the QTreeview
+        items = self.browser.selectedIndexes()
 
-            if items != []:
-                articles_set = set()
-                for article in items:
-                    if article.data(type_element, 0) != 'File Folder':
-                        local_id = 'L' + str(next_local_id)
-                        local_articles[local_id] = gen_local_article(self.token, article.data(filename_element, 0))
-                        local_articles[local_id].figshare_metadata['id'] = local_id
-                        articles_set.add(local_id)
-                        next_local_id += 1
+        # Create an empty set to add file paths to
+        file_paths = set()
+        for item in items:
+            # For items that are not directories
+            if not self.model.isDir(item):
+                file_paths.add(self.model.filePath(item))  # Add the item file path
+            else:
+                # Combine the current set with a set of files contained within the directory. Does not recursively
+                # open contained directories
+                contained_files = self.get_child_files(self.model.filePath(item))
+                if contained_files is not None:
+                    file_paths |= contained_files
 
-                self.local_metadata_window = LocalArticleEditWindow(self.app, self.token, self.main_window,
-                                                                    self.geometry(), articles_set)
-                self.local_metadata_window.show()
+        return file_paths
+
+    def get_child_files(self, path):
+        """
+        given a path to a directory will return a set of file paths contained within. Does not recursively open internal
+        directories
+        :param path: string. path to directory
+        :return: set. Containing file paths
+        """
+        dir = os.path.normpath(path)
+        if os.path.isdir(dir):
+            dir_contents = os.listdir(dir)
+
+            file_set = set()
+            for item in dir_contents:
+                if not os.path.isdir(item):
+                    file_set.add(os.path.join(dir, item))
+            return file_set
+        else:
+            return None
