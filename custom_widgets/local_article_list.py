@@ -159,6 +159,7 @@ class LocalArticleList(QWidget):
         :return:
         """
         self.search_field_combo.clear()
+        self.search_field_combo.addItem('')
         self.search_field_combo.addItems(self.parent.local_article_index.get_fields(schema='local_articles'))
 
     def disable_fields(self):
@@ -196,13 +197,14 @@ class LocalArticleList(QWidget):
             for column in range(self.tree.columnCount()):
                 self.tree.resizeColumnToContents(column)
 
-    def fill_tree(self, headers):
+    def fill_tree(self, headers, article_ids):
         """
         Called to fill the QTree
         :param headers:
         :return:
         """
-        for article_id in self.articles_ids:
+        self.tree.clear()
+        for article_id in article_ids:
             local_article = self.parent.local_articles[article_id]
             local_article.gen_qtree_item(headers, local_article.input_dicts())
             self.tree.addTopLevelItem(local_article.qtreeitem)
@@ -213,14 +215,24 @@ class LocalArticleList(QWidget):
         Called when the return key is pressed within the search bar
         :return:
         """
-        pass
+        field = self.search_field_combo.currentText()
+        query = self.search_edit.text()
+
+        local_article_index = self.parent.local_article_index
+        results = local_article_index.perform_search(schema='local_articles', field=field, query=query)
+
+        self.result_ids = set()
+        for docnum, val_dict in results.items():
+            if 'id' in val_dict:
+                self.result_ids.add(val_dict['id'])
+        self.fill_tree(self.tree_headers, self.result_ids)
 
     def search_on_clear(self):
         """
         Called when the clear button is pressed within the search bar
         :return:
         """
-        pass
+        self.fill_tree(self.tree_headers, self.articles_ids)
 
     def update_headers(self, headers):
         """
@@ -231,7 +243,7 @@ class LocalArticleList(QWidget):
         header_item = QTreeWidgetItem(headers)
         self.tree.setHeaderItem(header_item)
         self.tree.clear()
-        self.fill_tree(headers)
+        self.fill_tree(headers, self.articles_ids)
         # Adjust the size of the columns to the contents
         for column in range(self.tree.columnCount()):
             self.tree.resizeColumnToContents(column)
@@ -272,7 +284,7 @@ class LocalArticleList(QWidget):
         columns = 3
 
         # Empty the tree headers list
-        self.tree_headers = []
+        #self.tree_headers = []
 
         # Start at row zero
         row = 0
@@ -285,10 +297,14 @@ class LocalArticleList(QWidget):
                 # lambda function.
                 if len(fields) == 0:
                     break
-                exec("chk_box_{}_{} = QCheckBox(fields.pop(False))".format(row, i))  # Create a checkbox
+                lbl = fields.pop(False)
+                exec("chk_box_{}_{} = QCheckBox(lbl)".format(row, i))  # Create a checkbox
+                if lbl in self.tree_headers:
+                    eval("chk_box_{}_{}".format(row, i)).toggle()
                 eval("chk_box_{}_{}".format(row, i)).stateChanged.connect(lambda state, r=row,
                                                                                  c=i: self.check_box_clicked(r, c))
                 grid.addWidget(eval("chk_box_{}_{}".format(row, i)), row, i)  # add the checkbox to the grid
+
             row += 1  # increase the row counter
 
         self.dlg = dlg

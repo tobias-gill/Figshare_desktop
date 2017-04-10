@@ -188,24 +188,32 @@ class ArticleIndex(object):
     # Search Functions
     #####
 
-    def perform_search(self, schema, field: str, query: str):
+    def perform_search(self, schema, field: str, query: str, page: int=1, pagelen: int=20):
         """
         Performs a query of the index from the given field and query string
         :param schema:
         :param field: String. Index field
         :param query: String.
+        :param page: int. starting page of results to return results from
+        :param pagelen: int. number of results to display per page
         :return: list. results
         """
         if field is '':
             field = '*'
 
         results_dict = {}
+
         with self.schemas[schema].searcher() as searcher:
-            parser = QueryParser(field, self.schemas[schema].schema)
-            search_query = parser.parse(query)
-            results = searcher.search(search_query)
-            print(results)
-            for doc in range(results.estimated_length()):
-                results_dict[results.docnum(doc)] = results.fields(doc)
+            last_page = False
+            while not last_page:
+                parser = QueryParser(field, self.schemas[schema].schema)
+                search_query = parser.parse(query)
+                results = searcher.search_page(search_query, page, pagelen)
+
+                for doc in range(len(results)):
+                    results_dict[results.docnum(doc)] = results.results.fields(doc)
+
+                last_page = results.is_last_page()
+                page += 1
 
         return results_dict
