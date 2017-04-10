@@ -50,7 +50,9 @@ class MainWindow(QMainWindow):
         # Local Data Windows
         self.local_data_window = None
         self.data_articles_window = None
-        self.local_metadata_window = None
+        self.local_article_edit_window = None
+
+        self.local_article_index = None
 
         self.initFig()
         self.initUI()

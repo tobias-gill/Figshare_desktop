@@ -218,3 +218,13 @@ class sectionWindow(QMdiSubWindow):
 
         self.open_windows.remove('data_articles_window')
         self.parent.data_articles_window.close()
+
+    def open_data_articles_window(self):
+        """
+        Can be called from child windows to open the data articles window
+        :return:
+        """
+        self.parent.open_windows.add('data_articles_window')
+        self.parent.data_articles_window = DataArticlesWindow(self.app, self.token, self.parent)
+        self.parent.mdi.addSubWindow(self.parent.data_articles_window)
+        self.parent.data_articles_window.show()

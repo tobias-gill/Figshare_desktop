@@ -24,13 +24,13 @@ __status__ = "Development"
 
 class LocalMetadataWindow(ArticleEditWindow):
 
-    def __init__(self, app, OAuth_token, parent, file_paths):
+    def __init__(self, app, OAuth_token, parent, article_ids):
         super(QMdiSubWindow, self).__init__()
 
         self.app = app
         self.token = OAuth_token
         self.parent = parent
-        self.file_paths = file_paths
+        self.article_ids = article_ids
 
         self.initFig()
         self.initUI()
@@ -40,18 +40,20 @@ class LocalMetadataWindow(ArticleEditWindow):
         Initialises the figshare data
         :return:
         """
-        n_articles = len(self.file_paths)
-
-        # Create local articles from files
-        while self.file_paths:
-            # Get the file path
-            file_path = self.file_paths.pop()
-            self.create_local_article(file_path)
+        n_articles = len(self.article_ids)
 
         # For more than one files
         if n_articles > 1:
+
+            # First generate an empty dictionary for the default figshare metadata
+            figshare_metadata = {}
+            article = self.parent.local_articles[self.article_ids[0]]
+            for d in article.input_dicts()[0:1]:
+                figshare_metadata = {**figshare_metadata, **d}
+            self.figshare_metadata = dict.fromkeys(figshare_metadata)
+
             # Get the type of the first article
-            article = self.parent.local_articles['local_0']
+            article = self.parent.local_articles[self.article_ids[0]]
             initial_type = article.get_type()
 
             # Initially set all files as the same type
@@ -77,7 +79,10 @@ class LocalMetadataWindow(ArticleEditWindow):
         # For a Single Article
         else:
 
-            article = self.parent.local_articles['local_0']
+            # First get dictionary for the default figshare metadata
+            self.figshare_metadata = self.parent.local_articles[self.article_ids[0]].figshare_metadata
+
+            article = self.parent.local_articles[self.article_ids[0]]
             # Set the dictionary of file specific metadata keys and values
             self.file_metadata = None
             if len(article.input_dicts()) > 2:
@@ -93,41 +98,6 @@ class LocalMetadataWindow(ArticleEditWindow):
         self.license_dict = {0: '', 1: 'CC BY', 2: 'CC-0', 3: 'MIT', 4: 'GPL', 5: 'GPL-2.0', 6: 'GPL-3.0',
                              7: 'Apache-2.0'}
 
-    def create_local_article(self, file_path):
-        """
-        Creates a local article of the given file
-        :param file_path: string.
-        :return:
-        """
-        # set the local file id number
-        local_id = 'local_' + str(self.parent.next_local_id)
-        # Create local article
-        self.parent.local_articles[local_id] = gen_local_article(self.token, file_path)
-        # Set id number
-        self.parent.local_articles[local_id].figshare_metadata['id'] = local_id
-        # Increment next local id counter
-        self.parent.next_local_id += 1
-
-
-    def initUI(self):
-
-        self.format_window()
-
-        self.hbox = QHBoxLayout()
-
-        self.hbox.addLayout(self.control_button_layout())
-
-        # Add the tab widget
-        self.tabs = self.metadata_tab_window()
-        self.hbox.addWidget(self.tabs)
-
-        # Create a central widget for the article edit window
-        window_widget = QWidget()
-        # Add the horizontal box layout
-        window_widget.setLayout(self.hbox)
-        # Set the projects window widget
-        self.setWidget(window_widget)
-
     #####
     # Window Formatting
     #####
@@ -135,18 +105,6 @@ class LocalMetadataWindow(ArticleEditWindow):
     #####
     # Window Widgets
     #####
-
-    def control_button_layout(self):
-        """
-        Creates a layout with the save button
-        :return: QVBoxLayout
-        """
-        vbox = QVBoxLayout()
-
-        save_btn = self.save_button()
-        vbox.addWidget(save_btn)
-
-        return vbox
 
     def init_figshare_metadata_tab(self):
         """
@@ -159,19 +117,20 @@ class LocalMetadataWindow(ArticleEditWindow):
         scroll_wid = QWidget()
 
         # Create metadata labels and fields
-        title_lbl, title_edit = self.create_lineedit('Title', self.parent.local_articles['local_0'].figshare_metadata['title'])
-        if len(self.parent.local_articles) > 1:
+        title_lbl, title_edit = self.create_lineedit('Title', self.figshare_metadata['title'])
+        if len(self.article_ids) > 1:
             title_edit.setEnabled(False)
             title_edit.clear()
             title_edit.setPlaceholderText('Files will retain their individual titles')
-        descr_lbl, descr_edit = self.create_textedit('Description', '')
-        ref_lbl, ref_field = self.create_buttonfield('References', '')
-        tags_lbl, tags_field = self.create_buttonfield('Tags', '')
-        cat_lbl, cat_field = self.create_buttonfield('Categories', '')
-        auth_lbl, auth_field = self.create_buttonfield('Authors', '')
-        def_lbl, def_combo = self.create_combo('Defined Type', self.defined_type_dict, '')
-        fund_lbl, fund_field = self.create_buttonfield('Funding', '')
-        lic_lbl, lic_combo = self.create_combo('License', self.license_dict, 0)
+        descr_lbl, descr_edit = self.create_textedit('Description', self.figshare_metadata['description'])
+        ref_lbl, ref_field = self.create_buttonfield('References', self.figshare_metadata['references'])
+        tags_lbl, tags_field = self.create_buttonfield('Tags', self.figshare_metadata['tags'])
+        cat_lbl, cat_field = self.create_buttonfield('Categories', self.figshare_metadata['categories'])
+        auth_lbl, auth_field = self.create_buttonfield('Authors', self.figshare_metadata['authors'])
+        def_lbl, def_combo = self.create_combo('Defined Type', self.defined_type_dict,
+                                               self.figshare_metadata['defined_type'])
+        fund_lbl, fund_field = self.create_buttonfield('Funding', self.figshare_metadata['funding'])
+        lic_lbl, lic_combo = self.create_combo('License', self.license_dict, self.figshare_metadata['license'])
 
         # Create layout
         grid = QGridLayout()
@@ -241,7 +200,16 @@ class LocalMetadataWindow(ArticleEditWindow):
         overrides parent
         :return:
         """
-        pass
+        # Close the article edit window
+        self.parent.open_windows.remove('local_article_edit_window')
+        self.parent.local_article_edit_window.close()
+
+        # Open the local articles window
+        self.parent.section_window.open_data_articles_window()
+        article_tree = self.parent.data_articles_window.article_tree
+        article_tree.articles_ids = set(self.parent.local_articles.keys())
+        article_tree.fill_tree(article_tree.tree_headers, article_tree.articles_ids)
+        article_tree.enable_fields()
 
     def on_save_pressed(self):
         """

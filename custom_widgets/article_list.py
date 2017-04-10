@@ -295,7 +295,7 @@ class ArticleList(QWidget):
         columns = 3
 
         # Empty the tree headers list
-        self.tree_headers = []
+        #self.tree_headers = []
 
         # Start at row zero
         row = 0

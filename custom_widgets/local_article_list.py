@@ -12,6 +12,7 @@ from PyQt5.QtCore import (QThread, pyqtSignal, pyqtSlot, QObject)
 
 from Figshare_desktop.formatting.formatting import (search_bar, search_combo, press_button)
 
+from Figshare_desktop.custom_widgets.article_list import ArticleList
 from Figshare_desktop.figshare_articles.determine_type import gen_article
 from figshare_interface import Projects
 
@@ -24,7 +25,7 @@ __email__ = "toby.gill.09@ucl.ac.uk"
 __status__ = "Development"
 
 
-class LocalArticleList(QWidget):
+class LocalArticleList(ArticleList):
 
     def __init__(self, app, OAuth_token, parent):
         super(QWidget, self).__init__()
@@ -38,31 +39,6 @@ class LocalArticleList(QWidget):
         self.articles_ids = set()
 
         self.initUI()
-
-    def initUI(self):
-
-        # Initialise the article tree
-        self.initTree()
-
-        # Create a horizontal layout for the search bar and fields
-        search_layout = QHBoxLayout()
-
-        # Add field search to search layout
-        search_layout.addWidget(self.search_field())
-        # Add search bar to search layout
-        search_layout.addWidget(self.search_bar())
-        # Add headers selection button to search layout
-        search_layout.addWidget(self.headers_selection_btn())
-
-        # Create a vertical layout
-        vbox = QVBoxLayout()
-
-        # Add the search layout to the vertical layout
-        vbox.addLayout(search_layout)
-        # Add the article tree to the vertical layout
-        vbox.addWidget(self.tree)
-
-        self.setLayout(vbox)
 
     #####
     # Window Widgets
@@ -88,32 +64,6 @@ class LocalArticleList(QWidget):
         self.tree = tree
         self.tree_headers = headers
 
-    def search_bar(self):
-        """
-        Creates a QLineEdit object for user to enter search query
-        :return:
-        """
-        # Create text box
-        edit = QLineEdit()
-        # Set font style
-        search_bar(self.app, edit)
-        # Set place holder text
-        edit.setPlaceholderText('Search')
-        # Add a clear button to the line edit
-        edit.setClearButtonEnabled(True)
-        # Add mouse over text
-        edit.setToolTip('Search for specific Figshare Projects')
-        edit.setToolTipDuration(1)
-        # Connect search function to the return key
-        edit.returnPressed.connect(self.search_on_return)
-        # Connect the clear button to our own function
-        edit.children()[2].triggered.connect(self.search_on_clear)
-
-        edit.setEnabled(False)
-
-        self.search_edit = edit
-        return self.search_edit
-
     def search_field(self):
         """
         Creates a QComboBox with the different search fields to choose from
@@ -135,18 +85,6 @@ class LocalArticleList(QWidget):
 
         return self.search_field_combo
 
-    def headers_selection_btn(self):
-        """
-        Button pressed to open headers selection window
-        :return: QPushButton
-        """
-        btn = QPushButton('Select Headers')
-        press_button(self.app, btn)
-        btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        btn.clicked[bool].connect(self.on_headers_set_pressed)
-        btn.setEnabled(False)
-        self.headers_btn = btn
-        return self.headers_btn
 
     #####
     # Widget Actions
@@ -197,6 +135,20 @@ class LocalArticleList(QWidget):
             for column in range(self.tree.columnCount()):
                 self.tree.resizeColumnToContents(column)
 
+    def update_headers(self, headers):
+        """
+        Called to update the column headers in the QTree
+        :param headers: list of strings. in Order for the different column headers
+        :return:
+        """
+        header_item = QTreeWidgetItem(headers)
+        self.tree.setHeaderItem(header_item)
+        self.tree.clear()
+        self.fill_tree(headers, self.articles_ids)
+        # Adjust the size of the columns to the contents
+        for column in range(self.tree.columnCount()):
+            self.tree.resizeColumnToContents(column)
+
     def fill_tree(self, headers, article_ids):
         """
         Called to fill the QTree
@@ -233,20 +185,6 @@ class LocalArticleList(QWidget):
         :return:
         """
         self.fill_tree(self.tree_headers, self.articles_ids)
-
-    def update_headers(self, headers):
-        """
-        Called to update the column headers in the QTree
-        :param headers: list of strings. in Order for the different column headers
-        :return:
-        """
-        header_item = QTreeWidgetItem(headers)
-        self.tree.setHeaderItem(header_item)
-        self.tree.clear()
-        self.fill_tree(headers, self.articles_ids)
-        # Adjust the size of the columns to the contents
-        for column in range(self.tree.columnCount()):
-            self.tree.resizeColumnToContents(column)
 
     def on_headers_set_pressed(self):
         """
@@ -311,30 +249,32 @@ class LocalArticleList(QWidget):
         self.headers_box_layout = grid
         self.dlg.show()
 
-    def check_box_clicked(self, row, column):
+    def get_selection(self):
         """
-        Called when a check box in the header selection dialog is clicked
+        Can be called to return a list of the article id numbers of all selected articles
         :return:
         """
-        if self.headers_box_layout.itemAtPosition(row, column) is not None:
-            field = self.headers_box_layout.itemAtPosition(row, column).widget().text()
-            if field in self.tree_headers:
-                self.tree_headers.remove(field)
-            elif field not in self.tree_headers:
-                self.tree_headers.append(field)
+        items = self.tree.selectedItems()
 
-    def on_headers_ok_pressed(self):
+        article_ids = set()
+        for item in items:
+            article_ids.add(item.text(0))
+
+        return article_ids
+
+    def get_all(self):
         """
-        Called when the headers dialog window ok button is pressed
+        Can be called to return the article id numbers of all articles in the tree
         :return:
         """
-        self.dlg.close()
+        self.tree.selectAll()
+        items = self.tree.selectedItems()
 
-        # Ensure that id number is always the first column.
-        if self.tree_headers[0] != 'id':
-            self.tree_headers.insert(0, 'id')
+        article_ids = set()
+        for item in items:
+            article_ids.add(item.text(0))
 
-        self.update_headers(self.tree_headers)
+        return article_ids
 
 
 class OrderedSet(collections.OrderedDict, collections.MutableSet):
