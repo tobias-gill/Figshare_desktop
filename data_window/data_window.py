@@ -4,12 +4,13 @@ from PyQt5.QtWidgets import (QMdiSubWindow, QWidget, QLabel, QPushButton, QAbstr
                              QFileDialog, QTreeWidgetItem, QHBoxLayout, QVBoxLayout, QSizePolicy, QTreeWidget,
                              QFileSystemModel, QTreeView)
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
-from PyQt5.QtCore import (Qt, QPoint)
+from PyQt5.QtCore import (Qt, QObject, QThread, pyqtSignal, pyqtSlot)
 
 from Figshare_desktop.formatting.formatting import (press_button, checkable_button)
 
 from Figshare_desktop.figshare_articles.determine_type import gen_local_article
-from Figshare_desktop.article_edit_window.local_article_edit_window import LocalMetadataWindow
+from Figshare_desktop.data_window.data_articles_window import DataArticlesWindow
+from Figshare_desktop.article_edit_window.local_metadata_window import LocalMetadataWindow
 
 from figshare_interface import (Groups, Projects)
 
@@ -31,6 +32,8 @@ class DataWindow(QMdiSubWindow):
         self.token = OAuth_token
         self.parent = parent
 
+        self.__threads = []
+
         self.initUI()
 
     def initUI(self):
@@ -44,7 +47,7 @@ class DataWindow(QMdiSubWindow):
         # Add the widgets
         hbox.addWidget(self.set_directory_btn())
         hbox.addWidget(self.create_file_browser())
-        hbox.addWidget(self.open_selection_btn())
+        hbox.addWidget(self.add_to_selection_btn())
 
         # Create a central widget for the local data window
         window_widget = QWidget()
@@ -102,8 +105,12 @@ class DataWindow(QMdiSubWindow):
 
         # Set the model of the QTreeView
         self.model = QFileSystemModel()
-        self.model.setRootPath('')  # Define the initial root directory
+        home_dir = os.path.expanduser("~")  # Define the initial root directory
+        self.model.setRootPath(home_dir)
         self.browser.setModel(self.model)
+
+        # Resize the first column
+        self.browser.setColumnWidth(0, self.geometry().width() / 3)
 
         # Control how selection of items works
         #self.browser.setSelectionBehavior(QAbstractItemView.SelectItems)  # Allow for only single item selection
@@ -111,16 +118,16 @@ class DataWindow(QMdiSubWindow):
 
         return self.browser
 
-    def open_selection_btn(self):
+    def add_to_selection_btn(self):
         """
         Creates a QPushButton that can be used to open the metadata window for the selected items in the file browser
         :return: QPushButton
         """
         btn = QPushButton()
         btn.setIcon(QIcon(os.path.normpath(__file__ + '/../../img/Insert Row Below-48.png')))
-        checkable_button(self.app, btn)  # Format button
+        press_button(self.app, btn)  # Format button
         btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        btn.setToolTip("Open metadata window for selection")
+        btn.setToolTip("Add selected items to articles list")
         btn.setToolTipDuration(1)
 
         btn.clicked[bool].connect(self.on_open_selection_clicked)
@@ -151,17 +158,26 @@ class DataWindow(QMdiSubWindow):
         Called when the open selection button is clicked. Either open or closes the metadata window
         :return:
         """
-        if 'local_metadata_window' in self.parent.open_windows:
-            self.parent.open_windows.remove('local_metadata_window')
-            self.parent.local_metadata_window.close()
 
-        else:
-            file_paths = self.get_selection_set()
+        file_paths = self.get_selection_set()
+        article_tree = self.parent.data_articles_window.article_tree
 
-            self.parent.open_windows.add('local_metadata_window')
-            self.parent.local_metadata_window = LocalMetadataWindow(self.app, self.token, self.parent, file_paths)
-            self.parent.mdi.addSubWindow(self.parent.local_metadata_window)
-            self.parent.local_metadata_window.show()
+        article_tree.disable_fields()
+
+        worker = ArticleCreationWorker(self.token, self.parent, file_paths)
+
+        load_articles_thread = QThread()
+        self.__threads.append(load_articles_thread)
+
+        worker.moveToThread(load_articles_thread)
+
+        worker.sig_step.connect(article_tree.add_to_tree)
+        worker.sig_done.connect(article_tree.enable_fields)
+        worker.sig_done.connect(article_tree.update_search_field)
+
+        load_articles_thread.started.connect(worker.work)
+        load_articles_thread.start()
+
 
     def get_selection_set(self):
         """
@@ -186,7 +202,8 @@ class DataWindow(QMdiSubWindow):
 
         return file_paths
 
-    def get_child_files(self, path):
+    @staticmethod
+    def get_child_files(path):
         """
         given a path to a directory will return a set of file paths contained within. Does not recursively open internal
         directories
@@ -204,3 +221,131 @@ class DataWindow(QMdiSubWindow):
             return file_set
         else:
             return None
+
+
+class ArticleCreationWorker(QObject):
+
+    sig_step = pyqtSignal(str)
+    sig_done = pyqtSignal(bool)
+
+    def __init__(self, OAuth_token, parent, file_paths: set):
+        super().__init__()
+
+        self.token = OAuth_token
+        self.parent = parent
+        self.file_paths = file_paths
+
+    @pyqtSlot()
+    def work(self):
+        """
+
+        :return:
+        """
+        while self.file_paths:
+            path = self.file_paths.pop()
+            local_id = self.create_local_article(path)
+            self.sig_step.emit(local_id)
+        self.sig_done.emit(True)
+
+    def create_local_article(self, file_path):
+        """
+        Creates a local article of the given file
+        :param file_path: string.
+        :return:
+        """
+        # Check if an article does not already exist with the same title
+        article_exists, local_id = self.does_local_article_exist(file_path)
+
+        if not article_exists:
+
+            # set the local file id number
+            local_id = 'local_' + str(self.parent.next_local_id)
+            # Create local article
+            self.parent.local_articles[local_id] = gen_local_article(self.token, file_path)
+            # Set id number
+            self.parent.local_articles[local_id].figshare_metadata['id'] = local_id
+            # Increment next local id counter
+            self.parent.next_local_id += 1
+
+            # locally define the local article index for convenience
+            local_article_index = self.parent.local_article_index
+
+            # Get the article type
+            article = self.parent.local_articles[local_id]
+            article_type = article.figshare_metadata['type']
+
+            # Check to see if the article type has been added to the articles index
+            # If not we will need to add new fields to the index for the new file type
+            if article_type not in local_article_index.document_types:
+                # Add the new file type to the set of types included in the index
+                local_article_index.document_types.add(article_type)
+
+                # Define the schema we wish to add fields to
+                schema = 'local_articles'
+
+                # From the article type created get the index dictionary and add fields to the index appropriately
+                for field_name, field_type in article.index_schema().items():
+                    if field_type[0] == 'id':
+                        local_article_index.add_ID(schema=schema, field_name=field_name, stored=field_type[1])
+                    elif field_type[0] == 'text':
+                        local_article_index.add_TEXT(schema, field_name, field_type[1])
+                    elif field_type[0] == 'keyword':
+                        local_article_index.add_KEYWORD(schema, field_name, field_type[1])
+                    elif field_type[0] == 'numeric':
+                        local_article_index.add_NUMERIC(schema, field_name, field_type[1])
+                    elif field_type[0] == 'datetime':
+                        local_article_index.add_DATETIME(schema, field_name, field_type[1])
+                    elif field_type[0] == 'boolean':
+                        local_article_index.add_BOOLEAN(schema, field_name, field_type[1])
+                    elif field_type[0] == 'ngram':
+                        local_article_index.add_NGRAM(schema, field_name, field_type[1])
+
+            # Get a single dictionary of all fields associated to the article
+            document_dict = {}
+            for d in article.input_dicts():
+                document_dict = {**document_dict, **d}
+
+            # Add document to Index
+            local_article_index.addDocument(schema='local_articles', data_dict=document_dict)
+
+            return local_id
+
+        # Else if an existing article:
+        else:
+            return local_id
+
+
+    def does_local_article_exist(self, file_path: str):
+        """
+        Checks to see if an article already exists with the same title
+        :param file_path:
+        :return:
+        """
+        # Get the file name from the full path
+        file_name = os.path.split(file_path)[-1]
+
+        # locally define the local article index for convenience
+        local_article_index = self.parent.local_article_index
+
+        # If there is the local article schema present
+        if 'local_articles' in local_article_index.list_schema():
+
+            # Initially set article exists as False
+            exists = False
+
+            # Search for articles with the same title as the current file name
+            results = local_article_index.perform_search(schema='local_articles', field='title', query=file_name)
+
+            # Check in the results given if there is a document with the same title as the file name
+            for doc_num, val_dict in results.items():
+                # If one is found return true
+                if 'title' in val_dict:
+                    if val_dict['title'] == file_name:
+                        exists = True
+                        local_id = val_dict['id']
+                        break
+            if exists:
+                return True, local_id
+            # If we get here then no results had the same title (within the top ten hits) so return false
+            else:
+                return False, None

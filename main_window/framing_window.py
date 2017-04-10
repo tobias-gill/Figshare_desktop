@@ -47,6 +47,11 @@ class MainWindow(QMainWindow):
         self.project_articles_window = None
         self.article_edit_window = None
 
+        # Local Data Windows
+        self.local_data_window = None
+        self.data_articles_window = None
+        self.local_metadata_window = None
+
         self.initFig()
         self.initUI()
 
@@ -56,6 +61,9 @@ class MainWindow(QMainWindow):
         :return:
         """
         self.figshare_articles = {}
+
+        self.local_articles = {}
+        self.next_local_id = 0
 
     def initUI(self):
         """

@@ -12,7 +12,6 @@ from PyQt5.QtCore import (QThread, pyqtSignal, pyqtSlot, QObject)
 from Figshare_desktop.formatting.formatting import (search_bar, search_combo, press_button)
 
 from Figshare_desktop.figshare_articles.determine_type import gen_article
-from Figshare_desktop.custom_widgets.progress_bar import ArticleLoadBar
 from figshare_interface import Projects
 
 __author__ = "Tobias Gill"
@@ -25,8 +24,6 @@ __status__ = "Development"
 
 
 class ArticleList(QWidget):
-
-    sig_abort_load = pyqtSignal()
 
     def __init__(self, app, OAuth_token, project_id, parent):
         super().__init__()
@@ -141,6 +138,7 @@ class ArticleList(QWidget):
         edit.setToolTipDuration(1)
         # Connect search function to the return key
         edit.returnPressed.connect(self.search_on_return)
+        # Connect the clear button to our own function
         edit.children()[2].triggered.connect(self.search_on_clear)
 
         edit.setEnabled(False)
@@ -211,7 +209,6 @@ class ArticleList(QWidget):
     def add_to_tree(self, article_id: int):
         """
         Adds a single article to the QTree
-        :param headers: list of strings.
         :param article_id: int. or str. figshare article id
         :return:
         """
@@ -309,7 +306,9 @@ class ArticleList(QWidget):
                 # function only ever calls the last button.
                 # Further complication from having to remember that the stateChanged signal passes a bool int to the
                 # lambda function.
-                exec("chk_box_{}_{} = QCheckBox(fields.popitem()[0])".format(row, i))  # Create a checkbox
+                if len(fields) == 0:
+                    break
+                exec("chk_box_{}_{} = QCheckBox(fields.popitem(False)[0])".format(row, i))  # Create a checkbox
                 eval("chk_box_{}_{}".format(row, i)).stateChanged.connect(lambda state, r=row,
                                                                                  c=i: self.check_box_clicked(r, c))
                 grid.addWidget(eval("chk_box_{}_{}".format(row, i)), row, i)  # add the checkbox to the grid
@@ -404,18 +403,6 @@ class ArticleList(QWidget):
         if not self.does_article_exist_locally(article_id):
             article = gen_article(article_title, self.token, self.project_id, article_id)
             self.parent.figshare_articles[article_id] = article
-
-    def progress_bar(self, n_articles):
-        """
-        Called to indicate the progress of creating local version of figshare articles
-        :param n_articles:
-        :return:
-        """
-
-        pbar = QProgressBar()
-        pbar.setMaximum(n_articles - 1)
-
-        return pbar
 
     #####
     # Figshare API Functions

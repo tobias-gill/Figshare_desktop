@@ -41,8 +41,6 @@ class ProjectsArticlesWindow(QMdiSubWindow):
 
         self.project_id = project_id
 
-        self.open_windows = self.parent.open_windows
-
         self.initFig(self.project_id)
         self.initUI()
 

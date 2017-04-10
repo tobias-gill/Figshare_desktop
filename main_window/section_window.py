@@ -11,6 +11,7 @@ from Figshare_desktop.formatting.formatting import checkable_button
 
 from Figshare_desktop.projects_windows.projects_window import ProjectsWindow
 from Figshare_desktop.data_window.data_window import DataWindow
+from Figshare_desktop.data_window.data_articles_window import DataArticlesWindow
 from Figshare_desktop.selection_window.selection_window import SelectionWindow
 
 __author__ = "Tobias Gill"
@@ -173,6 +174,11 @@ class sectionWindow(QMdiSubWindow):
             self.parent.mdi.addSubWindow(self.parent.local_data_window)
             self.parent.local_data_window.show()
 
+            self.open_windows.add('data_articles_window')
+            self.parent.data_articles_window = DataArticlesWindow(self.app, self.token, self.parent)
+            self.parent.mdi.addSubWindow(self.parent.data_articles_window)
+            self.parent.data_articles_window.show()
+
     def close_projects_window(self):
         """
         Called to close the proejcts window and any children
@@ -209,3 +215,6 @@ class sectionWindow(QMdiSubWindow):
 
         self.open_windows.remove('local_data_window')
         self.parent.local_data_window.close()
+
+        self.open_windows.remove('data_articles_window')
+        self.parent.data_articles_window.close()

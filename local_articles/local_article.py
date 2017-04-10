@@ -33,7 +33,7 @@ class LocalArticle(Article):
                                   'version': None,
                                   'size': None,
                                   'status': 'local',
-                                  'type': None
+                                  'type': 'article'
                                   }
 
         self.figshare_desktop_metadata = {'location': None,
@@ -66,3 +66,7 @@ class LocalArticle(Article):
         """
         # This is not required for a simple figshare article. It should be re-defined for specific file types.
         return None
+
+    def index_schema(self):
+
+        return {}
