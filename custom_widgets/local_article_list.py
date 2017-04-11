@@ -171,7 +171,7 @@ class LocalArticleList(ArticleList):
 
         local_article_index = self.parent.local_article_index
         results = local_article_index.perform_search(schema='local_articles', field=field, query=query)
-        print(results)
+
         self.result_ids = set()
         for docnum, val_dict in results.items():
             if 'id' in val_dict:

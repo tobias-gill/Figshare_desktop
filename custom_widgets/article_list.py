@@ -308,7 +308,10 @@ class ArticleList(QWidget):
                 # lambda function.
                 if len(fields) == 0:
                     break
-                exec("chk_box_{}_{} = QCheckBox(fields.popitem(False)[0])".format(row, i))  # Create a checkbox
+                lbl = fields.popitem(False)[0]
+                exec("chk_box_{}_{} = QCheckBox(lbl)".format(row, i))  # Create a checkbox
+                if lbl in self.tree_headers:
+                    eval("chk_box_{}_{}".format(row, i)).toggle()
                 eval("chk_box_{}_{}".format(row, i)).stateChanged.connect(lambda state, r=row,
                                                                                  c=i: self.check_box_clicked(r, c))
                 grid.addWidget(eval("chk_box_{}_{}".format(row, i)), row, i)  # add the checkbox to the grid
