@@ -5,7 +5,7 @@ import os
 from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QMessageBox, QFileDialog, QMdiSubWindow,
                              QTextEdit, QGridLayout, QHBoxLayout, QVBoxLayout, QSizePolicy, QFrame)
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
-from PyQt5.QtCore import (Qt, QPoint)
+from PyQt5.QtCore import (Qt, pyqtSlot)
 
 from Figshare_desktop.formatting.formatting import (press_button)
 from Figshare_desktop.data_window.search_index import (ArticleIndex)
@@ -48,7 +48,7 @@ class DataArticlesWindow(QMdiSubWindow):
             # Create the default figshare metadata schema dictionary
             self.parent.local_article_index.create_schema('local_articles')
 
-            self.parent.local_article_index.add_ID(schema='local_articles', field_name='id', stored=True)
+            self.parent.local_article_index.add_ID(schema='local_articles', field_name='id', stored=True, unique=True)
             self.parent.local_article_index.add_TEXT('local_articles', 'title', True)
             self.parent.local_article_index.add_TEXT('local_articles', 'description')
             self.parent.local_article_index.add_KEYWORD('local_articles', 'tags', True)
@@ -92,6 +92,8 @@ class DataArticlesWindow(QMdiSubWindow):
         window_widget = QWidget()
         window_widget.setLayout(hbox)
         self.setWidget(window_widget)
+
+        self.check_edit()
 
     def format_window(self):
         """
@@ -145,11 +147,38 @@ class DataArticlesWindow(QMdiSubWindow):
 
         btn.pressed.connect(self.on_edit_pressed)
 
-        return btn
+        btn.setEnabled(False)
+        self.edit_btn = btn
+        return self.edit_btn
 
     #####
     # Widget Actions
     #####
+
+    @pyqtSlot(bool)
+    def check_edit(self):
+        """
+
+        :return:
+        """
+        if self.article_tree.tree.topLevelItemCount() == 0:
+            self.disable_edit()
+        else:
+            self.enable_edit()
+
+    def enable_edit(self):
+        """
+        Enables the edit QPushButton
+        :return:
+        """
+        self.edit_btn.setEnabled(True)
+
+    def disable_edit(self):
+        """
+        Disables the edit QPushButton
+        :return:
+        """
+        self.edit_btn.setEnabled(False)
 
     def on_delete_pressed(self):
         """
@@ -175,6 +204,7 @@ class DataArticlesWindow(QMdiSubWindow):
 
         # Re-fill the tree
         self.article_tree.fill_tree(self.article_tree.tree_headers, self.article_tree.articles_ids)
+        self.check_edit()
 
     def on_edit_pressed(self):
         """

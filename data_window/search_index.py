@@ -78,17 +78,18 @@ class ArticleIndex(object):
         """
         self.add_field(schema, field_name, TEXT(stored=stored))
 
-    def add_KEYWORD(self, schema, field_name: str, stored: bool=False):
+    def add_KEYWORD(self, schema, field_name: str, stored: bool=False, commas: bool=True):
         """
         Addsa a keyword field to the given schema
         :param schema: index schema
         :param field_name: name of the field to be added
         :param stored: should field be stored
+        :param commas: is this field a list of comma separated variables
         :return:
         """
-        self.add_field(schema, field_name, KEYWORD(stored=stored))
+        self.add_field(schema, field_name, KEYWORD(stored=stored, commas=commas))
 
-    def add_ID(self, schema, field_name: str, stored: bool=False):
+    def add_ID(self, schema, field_name: str, stored: bool=False, unique: bool=False):
         """
         Adds a id field to the given schema
         :param schema: index schema
@@ -96,7 +97,7 @@ class ArticleIndex(object):
         :param stored: should field be stored
         :return:
         """
-        self.add_field(schema, field_name, ID(stored=stored))
+        self.add_field(schema, field_name, ID(stored=stored, unique=unique))
 
     def add_NUMERIC(self, schema, field_name: str, stored: bool=False):
         """
@@ -169,9 +170,36 @@ class ArticleIndex(object):
         for key, value in data_dict.items():
             if key in self.get_fields(schema):
                 if value is not None:
+                    if type(value) is list and value != []:
+                        tags = ''
+                        for tag in value:
+                            tags += '{},'.format(tag)
+                        value = tags[:-1]
+                        print(value)
                     document_dict[key] = u"{}".format(value)
         writer = self.schemas[schema].writer()
         writer.add_document(**document_dict)
+        writer.commit()
+
+    def updateDocument(self, schema, data_dict: dict):
+        """
+        Updates an existing document in the given schema
+        :param schema:
+        :param data_dict: must contain the th unique document identifier as a field
+        :return:
+        """
+        document_dict = {}
+        for key, value in data_dict.items():
+            if key in self.get_fields(schema):
+                if value is not None:
+                    if type(value) is list and value != []:
+                        tags = ''
+                        for tag in value:
+                            tags += '{},'.format(tag)
+                        value = tags[:-1]
+                    document_dict[key] = u"{}".format(value)
+        writer = self.schemas[schema].writer()
+        writer.update_document(**document_dict)
         writer.commit()
 
     def removeDocument(self, schema, docnum: int):

@@ -211,41 +211,121 @@ class LocalMetadataWindow(ArticleEditWindow):
         article_tree.fill_tree(article_tree.tree_headers, article_tree.articles_ids)
         article_tree.enable_fields()
 
-    def on_save_pressed(self):
-        """
-        Saves the local articles by pasing them to the selection window
-        :return:
-        """
-        pass
-
     #####
     # Figshare Actions
     #####
 
-    def update_all_articles(self):
+    def update_article_figshare_metadata(self, local_article_id: str):
         """
-        Overides parent
+        :param local_article_id: String containing the local article id, 'local_#'
         :return:
         """
-        pass
+        # Get the current/old figshare metadata
+        article = self.parent.local_articles[local_article_id]
+        old_figshare_metadata = article.figshare_metadata
 
-    def update_single_article(self):
-        """
-        Overides parent
-        :return:
-        """
-        pass
+        # Get the new/edited figshare metadata
+        new_figshare_metadata = {}
+        figshare_grid = self.figshare_tab.widget().layout()
 
-    def update_article_figshare_metadata(self):
-        """
-        Overrides parent
-        :return:
-        """
-        pass
+        # Title
+        title = figshare_grid.itemAtPosition(0, 1).widget().text()
+        new_figshare_metadata['title'] = title
+        # Description
+        description = figshare_grid.itemAtPosition(1, 1).widget().toPlainText()
+        new_figshare_metadata['description'] = description
+        # References
+        references = figshare_grid.itemAtPosition(2, 1).widget().get_tags()
+        new_figshare_metadata['references'] = references
+        # Tags
+        tags = figshare_grid.itemAtPosition(3, 1).widget().get_tags()
+        new_figshare_metadata['tags'] = tags
+        # Categories
+        cat_list = figshare_grid.itemAtPosition(4, 1).widget().get_tags()
+        categories = [int(i) for i in cat_list]
+        new_figshare_metadata['categories'] = categories
+        # Authors
+        auth_list = figshare_grid.itemAtPosition(5, 1).widget().get_tags()
+        authors = [{'id': int(i)} for i in auth_list]
+        new_figshare_metadata['authors'] = authors
+        # Defined Type
+        defined_type = figshare_grid.itemAtPosition(6, 1).widget().currentText()
+        new_figshare_metadata['defined_type'] = defined_type
+        # Funding
+        fund_tags = figshare_grid.itemAtPosition(7, 1).widget().get_tags()
+        funding = ''
+        for tag in fund_tags:
+            funding += tag + ':_:'
+        new_figshare_metadata['funding'] = funding
+        # License
+        license = figshare_grid.itemAtPosition(8, 1).widget().currentIndex()
+        new_figshare_metadata['license'] = license
 
-    def update_article_file_metadata(self):
+        # Create an empty dictionary to add updates/edits
+        update_dict = {}
+
+        # Check for changes
+        for key, value in new_figshare_metadata.items():
+
+            if value != 'None' and value is not None and value != '' and value != []:
+                if value != old_figshare_metadata[key]:
+                    update_dict[key] = value
+
+        # Update the local article
+        article.update_info(update_dict)
+
+        # If there is no file specific metadata then update the Whoosh index document now
+        if self.file_metadata is None:
+            self.update_document(local_article_id)
+
+    def update_article_file_metadata(self, local_article_id: str):
         """
         overrides parent
         :return:
         """
-        pass
+        # Get the current/old file specific metadata
+        article = self.parent.local_articles[local_article_id]
+        old_file_dicts = article.input_dicts()[2:]
+        old_file_metadata = {}
+        for d in old_file_dicts:
+            for key, value in d.items():
+                old_file_metadata[key] = value
+
+        # Get the new/edited figshare metadata
+        new_file_metadata = {}
+        file_grid = self.filespecific_tab.widget().layout()
+
+        # Get the number of rows in the grid layout
+        n_rows = file_grid.rowCount()
+
+        # Get the new file metadata
+        for row in range(n_rows):
+            lbl = file_grid.itemAtPosition(row, 0).widget().text()
+            edit = file_grid.itemAtPosition(row, 1).widget().text()
+
+            new_file_metadata[lbl] = edit
+
+        # Check for changes
+        update_dict = {}
+        for key, value in new_file_metadata.items():
+            if value != 'None':
+                if value != old_file_metadata[key]:
+                    update_dict[key] = value
+
+        # Update local version of article
+        article.update_info(update_dict)
+
+        # Update the Whoosh index document
+        self.update_document(local_article_id)
+
+    def update_document(self, article_id):
+        """
+        Updates the Whoosh Index document of the given article
+        :param article_id:
+        :return:
+        """
+        update_dict = {}
+        for d in self.parent.local_articles[article_id].input_dicts():
+            update_dict = {**update_dict, **d}
+
+        self.parent.local_article_index.updateDocument('local_articles', article_id, update_dict)

@@ -130,7 +130,7 @@ class DataWindow(QMdiSubWindow):
         btn.setToolTip("Add selected items to articles list")
         btn.setToolTipDuration(1)
 
-        btn.clicked[bool].connect(self.on_open_selection_clicked)
+        btn.pressed.connect(self.on_open_selection_clicked)
 
         return btn
 
@@ -158,7 +158,6 @@ class DataWindow(QMdiSubWindow):
         Called when the open selection button is clicked. Either open or closes the metadata window
         :return:
         """
-
         file_paths = self.get_selection_set()
         article_tree = self.parent.data_articles_window.article_tree
 
@@ -167,17 +166,18 @@ class DataWindow(QMdiSubWindow):
         worker = ArticleCreationWorker(self.token, self.parent, file_paths)
 
         load_articles_thread = QThread()
-        self.__threads.append(load_articles_thread)
+        load_articles_thread.setObjectName('local_articles_thread')
+        self.__threads.append((load_articles_thread, worker))
 
         worker.moveToThread(load_articles_thread)
 
         worker.sig_step.connect(article_tree.add_to_tree)
         worker.sig_done.connect(article_tree.enable_fields)
         worker.sig_done.connect(article_tree.update_search_field)
+        worker.sig_done.connect(self.parent.data_articles_window.check_edit)
 
         load_articles_thread.started.connect(worker.work)
         load_articles_thread.start()
-
 
     def get_selection_set(self):
         """
@@ -243,6 +243,7 @@ class ArticleCreationWorker(QObject):
         """
         while self.file_paths:
             path = self.file_paths.pop()
+            print(path)
             local_id = self.create_local_article(path)
             self.sig_step.emit(local_id)
         self.sig_done.emit(True)
@@ -286,7 +287,8 @@ class ArticleCreationWorker(QObject):
                 # From the article type created get the index dictionary and add fields to the index appropriately
                 for field_name, field_type in article.index_schema().items():
                     if field_type[0] == 'id':
-                        local_article_index.add_ID(schema=schema, field_name=field_name, stored=field_type[1])
+                        local_article_index.add_ID(schema=schema, field_name=field_name, stored=field_type[1],
+                                                   unique=True)
                     elif field_type[0] == 'text':
                         local_article_index.add_TEXT(schema, field_name, field_type[1])
                     elif field_type[0] == 'keyword':

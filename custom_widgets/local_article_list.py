@@ -34,8 +34,6 @@ class LocalArticleList(ArticleList):
         self.token = OAuth_token
         self.parent = parent
 
-        self.__threads = []
-
         self.articles_ids = set()
 
         self.initUI()
@@ -126,6 +124,7 @@ class LocalArticleList(ArticleList):
         :param local_article_id:
         :return:
         """
+        print('add_to_tree')
         if local_article_id not in self.articles_ids:
             self.articles_ids.add(local_article_id)
             local_article = self.parent.local_articles[local_article_id]
@@ -172,12 +171,13 @@ class LocalArticleList(ArticleList):
 
         local_article_index = self.parent.local_article_index
         results = local_article_index.perform_search(schema='local_articles', field=field, query=query)
-
+        print(results)
         self.result_ids = set()
         for docnum, val_dict in results.items():
             if 'id' in val_dict:
                 self.result_ids.add(val_dict['id'])
         self.fill_tree(self.tree_headers, self.result_ids)
+        self.parent.data_articles_window.check_edit()
 
     def search_on_clear(self):
         """
@@ -185,6 +185,7 @@ class LocalArticleList(ArticleList):
         :return:
         """
         self.fill_tree(self.tree_headers, self.articles_ids)
+        self.parent.data_articles_window.check_edit()
 
     def on_headers_set_pressed(self):
         """

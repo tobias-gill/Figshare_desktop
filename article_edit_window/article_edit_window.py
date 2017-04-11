@@ -454,7 +454,7 @@ class ArticleEditWindow(QMdiSubWindow):
         errors = []
         if err_figshare is not None:
             errors.append(err_figshare)
-        if err_filespecific is not None:
+        if self.file_metadata is not None and err_filespecific is not None:
             errors.append(err_filespecific)
 
         return errors
@@ -482,25 +482,28 @@ class ArticleEditWindow(QMdiSubWindow):
         # References
         references = figshare_grid.itemAtPosition(2, 1).widget().get_tags()
         new_figshare_metadata['references'] = references
+        # Tags
+        tags = figshare_grid.itemAtPosition(3, 1).widget().get_tags()
+        new_figshare_metadata['tags'] = tags
         # Categories
-        cat_list = figshare_grid.itemAtPosition(3, 1).widget().get_tags()
+        cat_list = figshare_grid.itemAtPosition(4, 1).widget().get_tags()
         categories = [int(i) for i in cat_list]
         new_figshare_metadata['categories'] = categories
         # Authors
-        auth_list = figshare_grid.itemAtPosition(4, 1).widget().get_tags()
+        auth_list = figshare_grid.itemAtPosition(5, 1).widget().get_tags()
         authors = [{'id': int(i)} for i in auth_list]
         new_figshare_metadata['authors'] = authors
         # Defined Type
-        defined_type = figshare_grid.itemAtPosition(5, 1).widget().currentText()
+        defined_type = figshare_grid.itemAtPosition(6, 1).widget().currentText()
         new_figshare_metadata['defined_type'] = defined_type
         # Funding
-        fund_tags = figshare_grid.itemAtPosition(6, 1).widget().get_tags()
+        fund_tags = figshare_grid.itemAtPosition(7, 1).widget().get_tags()
         funding = ''
         for tag in fund_tags:
             funding += tag + ':_:'
         new_figshare_metadata['funding'] = funding
         # License
-        license = figshare_grid.itemAtPosition(7, 1).widget().currentIndex()
+        license = figshare_grid.itemAtPosition(8, 1).widget().currentIndex()
         new_figshare_metadata['license'] = license
 
         # Create an empty dictionary to add updates/edits
