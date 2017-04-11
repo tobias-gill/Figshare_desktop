@@ -243,7 +243,6 @@ class ArticleCreationWorker(QObject):
         """
         while self.file_paths:
             path = self.file_paths.pop()
-            print(path)
             local_id = self.create_local_article(path)
             self.sig_step.emit(local_id)
         self.sig_done.emit(True)

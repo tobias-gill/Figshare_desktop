@@ -5,12 +5,13 @@ import os
 from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QMessageBox, QFileDialog, QMdiSubWindow,
                              QTextEdit, QGridLayout, QHBoxLayout, QVBoxLayout, QSizePolicy, QFrame)
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
-from PyQt5.QtCore import (Qt, pyqtSlot)
+from PyQt5.QtCore import (Qt, QThread, pyqtSlot)
 
 from Figshare_desktop.formatting.formatting import (press_button)
 from Figshare_desktop.data_window.search_index import (ArticleIndex)
 from Figshare_desktop.article_edit_window.local_metadata_window import LocalMetadataWindow
 from Figshare_desktop.custom_widgets.local_article_list import LocalArticleList
+from Figshare_desktop.data_window.figshare_add_article_list import TreeAddWorker
 
 
 __author__ = "Tobias Gill"
@@ -30,6 +31,8 @@ class DataArticlesWindow(QMdiSubWindow):
         self.app = app
         self.token = OAuth_token
         self.parent = parent
+
+        self.__threads = []
 
         self.initIndex()
         self.initUI()
@@ -69,6 +72,7 @@ class DataArticlesWindow(QMdiSubWindow):
         control_btns_layout = QVBoxLayout()
         # Add control buttons
         control_btns_layout.addWidget(self.delete_btn())
+        control_btns_layout.addWidget(self.project_btn())
 
         # Create the article tree
         self.article_tree = LocalArticleList(self.app, self.token, self.parent)
@@ -133,6 +137,22 @@ class DataArticlesWindow(QMdiSubWindow):
         btn.pressed.connect(self.on_delete_pressed)
 
         return btn
+
+    def project_btn(self):
+        """
+        Creates a QPushButton than can be used to add selected articles to an existing figshare project
+        :return:
+        """
+        btn = QPushButton()
+        btn.setIcon(QIcon(os.path.normpath(__file__ + '/../../img/Insert Row Below-48.png')))
+        btn.setToolTip('Add selection to upload queue')
+        btn.setToolTipDuration(1)
+        press_button(self.app, btn)
+
+        btn.pressed.connect(self.on_project_pressed)
+
+        self.proj_btn = btn
+        return self.proj_btn
 
     def edit_btn(self):
         """
@@ -211,25 +231,35 @@ class DataArticlesWindow(QMdiSubWindow):
         Called when the edit article button is pressed. Opens the local article edit window
         :return:
         """
+        # Get the list of selected articles
+        selected_articles = list(self.article_tree.get_selection())
 
-        # This hopefully shouldn't be possible, but lets plan for it just incase.
-        if 'local_article_edit_window' in self.parent.open_windows:
-            # Remove article edit window
-            self.parent.open_windows.remove('local_article_edit_windows')
-            self.parent.local_article_edit_window.close()
+        # Close the article list window
+        self.parent.open_windows.remove('data_articles_window')
+        self.parent.data_articles_window.close()
 
-        # Open the Local article edit window and close the article list window
-        else:
-            # Get the list of selected articles
-            selected_articles = list(self.article_tree.get_selection())
+        # Create and open the article edit window
+        self.parent.open_windows.add('local_article_edit_window')
+        self.parent.local_article_edit_window = LocalMetadataWindow(self.app, self.token, self.parent,
+                                                                    selected_articles)
+        self.parent.mdi.addSubWindow(self.parent.local_article_edit_window)
+        self.parent.local_article_edit_window.show()
 
-            # Close the article list window
-            self.parent.open_windows.remove('data_articles_window')
-            self.parent.data_articles_window.close()
+    def on_project_pressed(self):
+        """
+        Called when the add to upload queue button is pressed
+        :return:
+        """
+        article_id_set = self.article_tree.get_selection()
+        upload_queue = self.parent.figshare_add_window.upload_queue
 
-            # Create and open the article edit window
-            self.parent.open_windows.add('local_article_edit_window')
-            self.parent.local_article_edit_window = LocalMetadataWindow(self.app, self.token, self.parent,
-                                                                        selected_articles)
-            self.parent.mdi.addSubWindow(self.parent.local_article_edit_window)
-            self.parent.local_article_edit_window.show()
+        worker = TreeAddWorker(article_id_set)
+        worker.sig_step.connect(upload_queue.add_to_tree)
+
+        queue_add_thread = QThread()
+        self.__threads.append((queue_add_thread, worker))
+
+        worker.moveToThread(queue_add_thread)
+
+        queue_add_thread.started.connect(worker.work)
+        queue_add_thread.start()

@@ -124,7 +124,6 @@ class LocalArticleList(ArticleList):
         :param local_article_id:
         :return:
         """
-        print('add_to_tree')
         if local_article_id not in self.articles_ids:
             self.articles_ids.add(local_article_id)
             local_article = self.parent.local_articles[local_article_id]

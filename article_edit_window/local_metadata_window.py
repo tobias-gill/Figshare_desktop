@@ -328,4 +328,4 @@ class LocalMetadataWindow(ArticleEditWindow):
         for d in self.parent.local_articles[article_id].input_dicts():
             update_dict = {**update_dict, **d}
 
-        self.parent.local_article_index.updateDocument('local_articles', article_id, update_dict)
+        self.parent.local_article_index.updateDocument('local_articles', update_dict)
