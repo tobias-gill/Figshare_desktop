@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QMessageBo
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QThread, pyqtSlot)
 
-from Figshare_desktop.formatting.formatting import (press_button, grid_edit)
+from Figshare_desktop.formatting.formatting import (press_button, log_edit)
 from Figshare_desktop.data_window.search_index import (ArticleIndex)
 from Figshare_desktop.article_edit_window.local_metadata_window import LocalMetadataWindow
 from Figshare_desktop.custom_widgets.local_article_list import LocalArticleList
@@ -50,7 +50,7 @@ class UploadLog(QWidget):
 
         edit = QPlainTextEdit()
         edit.setEnabled(False)
-        grid_edit(self.app, edit)
+        log_edit(self.app, edit)
 
         self.log = edit
         return self.log
@@ -105,11 +105,11 @@ class UploadLog(QWidget):
         :param error_args: error arguments
         :return:
         """
-        msg = "[ERROR] local article {local} - {title}\n"
+        msg = "[ERROR] local article {local} : {title}\n"
         msg = msg.format(local=local_id, title=article_title)
 
         for arg in error_args:
-            msg += '{}\n'.format(arg)
+            msg += '\t{}\n'.format(arg)
 
         log = self.log.toPlainText() + msg
 

@@ -205,3 +205,6 @@ class UploadWorker(QObject):
         except HTTPError as err:
             err_args = err.args
             self.sig_error.emit(local_article_id, article_title, err_args)
+        except ValueError as err:
+            err_args = err.args
+            self.sig_error.emit(local_article_id, article_title, err_args)

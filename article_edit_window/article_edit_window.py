@@ -379,10 +379,13 @@ class ArticleEditWindow(QMdiSubWindow):
             else:
                 combo.addItem(value)
         if type(fill) is int:
-
             combo.setCurrentIndex(fill)
         elif type(fill) is str:
-            combo.setCurrentIndex(metadata_dict[fill])
+            try:
+                fill = int(fill)
+                combo.setCurrentIndex(metadata_dict[fill])
+            except:
+                combo.setCurrentIndex(0)
         return lbl, combo
 
     #####

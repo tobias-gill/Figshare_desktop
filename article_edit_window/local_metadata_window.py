@@ -8,6 +8,8 @@ from PyQt5.QtWidgets import (QMdiSubWindow, QLabel, QPushButton, QMessageBox, QM
 from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
 from PyQt5.QtCore import (Qt, QObject)
 
+from figshare_interface.http_requests.figshare_requests import issue_request
+
 from Figshare_desktop.article_edit_window.article_edit_window import ArticleEditWindow
 from Figshare_desktop.figshare_articles.determine_type import gen_local_article
 from ..formatting.formatting import (press_button, scaling_ratio, checkable_button, search_bar)
@@ -92,6 +94,11 @@ class LocalMetadataWindow(ArticleEditWindow):
                 self.file_metadata = file_dict
 
         # Metadata Dictionaries
+        allowed_cats = issue_request(method='GET', endpoint='categories', token=self.token)
+        self.cat_dict = {}
+        for cat in allowed_cats:
+            self.cat_dict[cat['id']] = cat['title']
+
         self.defined_type_dict = {'': 0, 'figure': 1, 'media': 2, 'dataset': 3, 'fileset': 4, 'poster': 5,
                                   'paper': 6,
                                   'presentation': 7, 'thesis': 8, 'code': 9, 'metadata': 10}
@@ -125,7 +132,12 @@ class LocalMetadataWindow(ArticleEditWindow):
         descr_lbl, descr_edit = self.create_textedit('Description', self.figshare_metadata['description'])
         ref_lbl, ref_field = self.create_buttonfield('References', self.figshare_metadata['references'])
         tags_lbl, tags_field = self.create_buttonfield('Tags', self.figshare_metadata['tags'])
-        cat_lbl, cat_field = self.create_buttonfield('Categories', self.figshare_metadata['categories'])
+        categories_list = []
+        if self.figshare_metadata['categories'] is not None:
+            for cat in self.figshare_metadata['categories']:
+                if cat in self.cat_dict:
+                    categories_list.append(self.cat_dict[cat])
+        cat_lbl, cat_field = self.create_buttonfield('Categories', categories_list)
         auth_lbl, auth_field = self.create_buttonfield('Authors', self.figshare_metadata['authors'])
         def_lbl, def_combo = self.create_combo('Defined Type', self.defined_type_dict,
                                                self.figshare_metadata['defined_type'])
@@ -210,6 +222,7 @@ class LocalMetadataWindow(ArticleEditWindow):
         article_tree.articles_ids = set(self.parent.local_articles.keys())
         article_tree.fill_tree(article_tree.tree_headers, article_tree.articles_ids)
         article_tree.enable_fields()
+        self.parent.data_articles_window.edit_btn.setEnabled(True)
 
     #####
     # Figshare Actions
@@ -242,7 +255,7 @@ class LocalMetadataWindow(ArticleEditWindow):
         new_figshare_metadata['tags'] = tags
         # Categories
         cat_list = figshare_grid.itemAtPosition(4, 1).widget().get_tags()
-        categories = [int(i) for i in cat_list]
+        categories = [self.cat_dict[int(i)] for i in cat_list]
         new_figshare_metadata['categories'] = categories
         # Authors
         auth_list = figshare_grid.itemAtPosition(5, 1).widget().get_tags()
@@ -259,6 +272,7 @@ class LocalMetadataWindow(ArticleEditWindow):
         new_figshare_metadata['funding'] = funding
         # License
         license = figshare_grid.itemAtPosition(8, 1).widget().currentIndex()
+        license = str(license)
         new_figshare_metadata['license'] = license
 
         # Create an empty dictionary to add updates/edits

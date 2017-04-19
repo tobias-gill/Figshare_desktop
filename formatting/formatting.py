@@ -142,6 +142,29 @@ def edit_font(app):
 
     return font
 
+def log_font(app):
+    """
+    Returns a QFont object for buttons
+    :param app: QApplication object
+    :return: QFont object
+    """
+
+    # Gets window and font ratios
+    screen_ratio, font_ratio = scaling_ratio(app)
+
+    # Reference font size
+    ref_fontsize = 8
+
+    # Scale font size
+    fontsize = font_ratio * ref_fontsize
+
+    # Create and modify QFont object
+    font = QFont('SansSerif')
+    font.setBold(False)
+    font.setPointSize(fontsize)
+
+    return font
+
 def search_font(app):
     """
     Returns a QFont object for search bars
@@ -258,6 +281,17 @@ def grid_edit(app, edit):
     size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     edit.setSizePolicy(size_policy)
     edit.setFont(edit_font(app))
+
+def log_edit(app, edit):
+    """
+    Formats a QTextEdit for use as a log window
+    :param app: QApplication
+    :param edit: QTextEdit or QLineEdit
+    :return:
+    """
+    size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    edit.setSizePolicy(size_policy)
+    edit.setFont(log_font(app))
 
 def search_combo(app, combo):
     """

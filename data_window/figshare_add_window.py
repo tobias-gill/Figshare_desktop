@@ -12,7 +12,7 @@ from Figshare_desktop.data_window.figshare_add_article_list import ArticleList
 from Figshare_desktop.data_window.figshare_projects_button import ProjectButton
 from Figshare_desktop.data_window.figshare_collections_button import CollectionButton
 from Figshare_desktop.data_window.upload_control_widget import UploadControl
-from Figshare_desktop.data_window.figsahre_upload_log import UploadLog
+from Figshare_desktop.data_window.figshare_upload_log import UploadLog
 
 __author__ = "Tobias Gill"
 __credits__ = ["Tobias Gill", "Adrian-Tudor Panescu", "Miriam Keshani"]
