@@ -80,7 +80,8 @@ class LocalTopoArticle(TopoArticle, LocalArticle):
 
             for key in file_info:
                 if key in self.stm_topo_metadata:
-                    self.stm_topo_metadata[key] = file_info[key]
+                    # Added string to comply with new figshare custom fields formatting
+                    self.stm_topo_metadata[key] = str(file_info[key])
 
     def index_schema(self):
         """

@@ -234,16 +234,17 @@ class DataArticlesWindow(QMdiSubWindow):
         # Get the list of selected articles
         selected_articles = list(self.article_tree.get_selection())
 
-        # Close the article list window
-        self.parent.open_windows.remove('data_articles_window')
-        self.parent.data_articles_window.close()
+        if selected_articles != []:
+            # Close the article list window
+            self.parent.open_windows.remove('data_articles_window')
+            self.parent.data_articles_window.close()
 
-        # Create and open the article edit window
-        self.parent.open_windows.add('local_article_edit_window')
-        self.parent.local_article_edit_window = LocalMetadataWindow(self.app, self.token, self.parent,
-                                                                    selected_articles)
-        self.parent.mdi.addSubWindow(self.parent.local_article_edit_window)
-        self.parent.local_article_edit_window.show()
+            # Create and open the article edit window
+            self.parent.open_windows.add('local_article_edit_window')
+            self.parent.local_article_edit_window = LocalMetadataWindow(self.app, self.token, self.parent,
+                                                                        selected_articles)
+            self.parent.mdi.addSubWindow(self.parent.local_article_edit_window)
+            self.parent.local_article_edit_window.show()
 
     def on_project_pressed(self):
         """

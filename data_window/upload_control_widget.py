@@ -58,6 +58,7 @@ class UploadControl(QWidget):
         """
 
         btn = QPushButton()
+        press_button(self.app, btn)
         btn.setIcon(QIcon(os.path.normpath(__file__ + '/../../img/figshare_upload.png')))
         btn.setToolTip('Begin Upload')
         btn.setToolTipDuration(1)
@@ -76,6 +77,7 @@ class UploadControl(QWidget):
         """
 
         btn = QPushButton()
+        press_button(self.app, btn)
         btn.setIcon(QIcon(os.path.normpath(__file__ + '/../../img/exit.png')))
         btn.setToolTip('Stop Upload')
         btn.setToolTipDuration(1)
