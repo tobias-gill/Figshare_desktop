@@ -311,7 +311,7 @@ class ProjectInfoWindow(QMdiSubWindow):
 
         # Collaborators Field
         collaborators = self.project_info['collaborators']
-        col_field = QButtonField()
+        col_field = QButtonField(parent=self)
         if collaborators is not None:
             for col in collaborators:
                 name = col['name']
@@ -322,7 +322,7 @@ class ProjectInfoWindow(QMdiSubWindow):
 
         # Funding Field
         funding = self.project_info['funding']
-        funding_field = QButtonField()
+        funding_field = QButtonField(parent=self)
         if funding != '':
             for funder in funding.split(':_:'):
                 if funder != '':

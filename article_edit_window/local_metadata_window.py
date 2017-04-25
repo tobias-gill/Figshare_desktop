@@ -255,7 +255,17 @@ class LocalMetadataWindow(ArticleEditWindow):
         new_figshare_metadata['tags'] = tags
         # Categories
         cat_list = figshare_grid.itemAtPosition(4, 1).widget().get_tags()
-        categories = [self.cat_dict[int(i)] for i in cat_list]
+        categories = []
+        for tag in cat_list:
+            try:
+                tag = int(tag)
+                if tag in self.cat_dict:
+                    categories.append(tag)
+            except:
+                for cat_id, cat_title in self.cat_dict.items():
+                    if cat_title == tag:
+                        categories.append(cat_id)
+                        break
         new_figshare_metadata['categories'] = categories
         # Authors
         auth_list = figshare_grid.itemAtPosition(5, 1).widget().get_tags()

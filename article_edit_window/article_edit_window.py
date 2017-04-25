@@ -353,7 +353,7 @@ class ArticleEditWindow(QMdiSubWindow):
         """
         lbl = self.create_label(label)
 
-        button_field = QButtonField()
+        button_field = QButtonField(parent=self)
         if fill_list is not None:
             for tag in fill_list:
                 if type(tag) == dict:
@@ -401,8 +401,11 @@ class ArticleEditWindow(QMdiSubWindow):
         self.parent.open_windows.remove('article_edit_window')
         self.parent.article_edit_window.close()
 
-        # Open project articles window
-        self.parent.project_info_window.on_articles_pressed()
+        if 'project_info_window' in self.parent.open_windows:
+            # Open project articles window
+            self.parent.project_info_window.on_articles_pressed()
+        elif 'collection_info_window' in self.parent.open_windows:
+            self.parent.collection_info_window.on_articles_pressed()
 
     def on_save_pressed(self):
         """

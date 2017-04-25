@@ -4,7 +4,6 @@ Base Class of Figshare Articles for use in Figshare Desktop
 
 from PyQt5.QtWidgets import (QTreeWidgetItem)
 
-from figshare_interface.figshare_structures.projects import Projects
 from figshare_interface.figshare_structures.collections import Collections
 from figshare_interface.http_requests.figshare_requests import issue_request
 
@@ -22,7 +21,7 @@ class Article(object):
     Figshare Article Base Class
     """
 
-    def __init__(self, OAuth_token: str, project_id: int, article_id: str):
+    def __init__(self, OAuth_token: str, collection_id: int, article_id: str):
         """
         Creates the base Figshare metadata dictionary for an article and fills all available information.
 
@@ -39,7 +38,7 @@ class Article(object):
         """
         # Create class variables
         self.token = OAuth_token
-        self.project_id = project_id
+        self.collection_id = collection_id
         self.article_id = article_id
 
         # Initialise dictionary for basic Figshare metadata.
@@ -212,9 +211,9 @@ class Article(object):
             None
         """
         # Create an instance of the Projects class
-        project = Projects(self.token)
+        collections = Collections(self.token)
         # Retrieve a dictionary of article information from the project
-        basic_info = project.get_article(self.project_id, self.article_id)
+        basic_info = collections.get_article(self.article_id)
         # Use the retrieved dictionary to fill the local metadata dictionaries
         self.gen_figshare_metadata(basic_info)
         # Perform a check on the format of the filled information

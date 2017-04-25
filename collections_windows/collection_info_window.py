@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QGridLayout, QSc
 
 # Figshare Desktop Imports
 from Figshare_desktop.abstract_windows.object_info_window import ObjectInfoWindow
+from Figshare_desktop.collections_windows.collection_articles_window import CollectionsArticlesWindow
 from Figshare_desktop.custom_widgets.button_field import QButtonField
 
 # Figshare API imports
@@ -354,6 +355,26 @@ class CollectionInfoWindow(ObjectInfoWindow):
         for i in range(2):
             self.parent.section_window.on_collections_btn_pressed()
         self.parent.collections_window.on_object_pressed(self.object_id)
+
+    def on_articles_pressed(self):
+        """
+        Called when the articles button is pressed. This will open or close the articles window.
+
+        Returns:
+
+        """
+        if 'collection_articles_window' in self.open_windows:
+            self.open_windows.remove('collection_articles_window')
+            self.parent.collection_articles_window.close()
+        elif 'article_edit_window' in self.open_windows:
+            self.open_windows.remove('article_edit_window')
+            self.parent.article_edit_window.close()
+        else:
+            self.open_windows.add('collection_articles_window')
+            self.parent.collection_articles_window = CollectionsArticlesWindow(self.app, self.token, self.parent,
+                                                                               self.object_id)
+            self.parent.mdi.addSubWindow(self.parent.collection_articles_window)
+            self.parent.collection_articles_window.show()
 
     # Figshare API Functions
     # ======================
