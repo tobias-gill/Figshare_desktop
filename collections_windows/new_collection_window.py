@@ -5,20 +5,15 @@ This module contains the new collection window class that allows a user to creat
 """
 
 # Standard Imports
+from PyQt5.QtCore import (Qt)
+from PyQt5.QtWidgets import (QLabel, QGridLayout, QMessageBox)
 from requests import HTTPError
 
-# PyQt Imports
-from PyQt5.QtWidgets import (QLabel, QGridLayout, QMessageBox)
-from PyQt5.QtCore import (Qt)
-
-# Figshare Desktop Imports
-from Figshare_desktop.custom_widgets.new_object_window import NewObjectWindow
-from Figshare_desktop.formatting.formatting import (grid_label)
+from Figshare_desktop.abstract_windows.new_object_window import NewObjectWindow
 from Figshare_desktop.custom_widgets.button_field import QButtonField
-
-# Figshare API Imports
-from figshare_interface.http_requests.figshare_requests import issue_request
+from Figshare_desktop.formatting.formatting import (grid_label)
 from figshare_interface.figshare_structures.collections import Collections
+from figshare_interface.http_requests.figshare_requests import issue_request
 
 __author__ = "Tobias Gill"
 __credits__ = ["Tobias Gill", "Adrian-Tudor Panescu", "Miriam Keshani"]
@@ -61,11 +56,11 @@ class NewCollectionWindow(NewObjectWindow):
         """
         # TITLE
         title_lbl, self.title_field = self.create_lineedit('Title')
-        self.title_field.setPlaceHolderText('Enter Collection title here.')
+        self.title_field.setPlaceholderText('Enter Collection title here.')
 
         # DESCRIPTION
         desc_lbl, self.descr_field = self.create_edit('Description')
-        self.descr_field.setPlaceHolderText('Enter meaningful collection description here.')
+        self.descr_field.setPlaceholderText('Enter meaningful collection description here.')
 
         # AUTHORS
         auth_lbl, self.auth_field = self.create_button_field('Authors')
@@ -83,7 +78,7 @@ class NewCollectionWindow(NewObjectWindow):
         grid = QGridLayout()
 
         # Add Title
-        grid.addWidget(title_lbl, 0, 0, Qt.AlignLedt)
+        grid.addWidget(title_lbl, 0, 0, Qt.AlignLeft)
         grid.addWidget(self.title_field, 0, 1)
 
         # Add Description
@@ -92,19 +87,19 @@ class NewCollectionWindow(NewObjectWindow):
 
         # Add Authors
         grid.addWidget(auth_lbl, 2, 0, Qt.AlignLeft)
-        grid.addItem(self.auth_field, 2, 1)
+        grid.addWidget(self.auth_field, 2, 1)
 
         # Add Categories
         grid.addWidget(cat_lbl, 3, 0, Qt.AlignLeft)
-        grid.addItem(self.cat_field, 3, 1)
+        grid.addWidget(self.cat_field, 3, 1)
 
         # Add Tags
         grid.addWidget(tag_lbl, 4, 0, Qt.AlignLeft)
-        grid.addItem(self.tag_field, 4, 1)
+        grid.addWidget(self.tag_field, 4, 1)
 
         # Add References
         grid.addWidget(ref_lbl, 5, 0, Qt.AlignLeft)
-        grid.addItem(self.ref_field, 5, 1)
+        grid.addWidget(self.ref_field, 5, 1)
 
         grid.setColumnStretch(1, 3)
 

@@ -7,6 +7,9 @@ import sys
 from PyQt5.QtWidgets import (QMainWindow, QMdiArea, QAction, qApp)
 from PyQt5.QtGui import (QIcon, QFont, QKeySequence)
 
+# Figshare API Imports
+from figshare_interface.http_requests.figshare_requests import issue_request
+
 from ..formatting.formatting import scaling_ratio
 from .section_window import sectionWindow
 
@@ -47,6 +50,12 @@ class MainWindow(QMainWindow):
         self.project_articles_window = None
         self.article_edit_window = None
 
+        # Collection Windows
+        self.collections_window = None
+        self.new_collection_window = None
+        self.collection_info_window = None
+        self.collection_aticles_window = None
+
         # Local Data Windows
         self.local_data_window = None
         self.data_articles_window = None
@@ -66,6 +75,8 @@ class MainWindow(QMainWindow):
 
         self.local_articles = {}
         self.next_local_id = 0
+
+        self.categories = self.get_figshare_cats()
 
     def initUI(self):
         """
@@ -120,3 +131,20 @@ class MainWindow(QMainWindow):
         self.exit_action.setShortcut('Ctrl+Q')
         self.exit_action.triggered.connect(qApp.quit)
         return self.exit_action
+
+    # Figshare API Functions
+    # ======================
+
+    def get_figshare_cats(self):
+        """
+        Creates a dictionary object with collection id: name pairs.
+        Returns:
+            cat_dict (dict): Figshare categories dictionary.
+        """
+        # Get a dictionary of categories from Figshare with id and name pairs
+        allowed_cats = issue_request(method='GET', endpoint='categories', token=self.token)
+        cat_dict = {}
+        for cat in allowed_cats:
+            cat_dict[cat['id']] = cat['title']
+
+        return cat_dict

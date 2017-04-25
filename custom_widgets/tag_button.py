@@ -18,7 +18,7 @@ __status__ = "Development"
 
 class QTagButton(QPushButton):
 
-    def __init__(self, label, tag_set):
+    def __init__(self, label: str, tag_set: set, tooltip_lbl: str=None):
         """
         Formats the tag button
         :param label: String of tag.
@@ -35,6 +35,10 @@ class QTagButton(QPushButton):
         self.setFont(font)
         font_metric = QFontMetrics(font)
         width = font_metric.width(str(label)) + 20
+
+        if tooltip_lbl is not None:
+            self.setToolTip(tooltip_lbl)
+            self.setToolTipDuration(1000)
 
         self.setMinimumWidth(width)
         self.setMaximumWidth(width)

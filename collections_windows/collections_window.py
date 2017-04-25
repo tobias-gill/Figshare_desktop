@@ -3,25 +3,15 @@ Figshare Collections Window
 
 This window presents a view of the collections in a users account and allows for them to be created, and deleted.
 Collections can then be opened to examine their contents, an action that creates new child windows.
-
-Todo:
-    * Mimic Projects Window
 """
 # Standard Imports
-import os
 
 # PyQt Imports
-from PyQt5.QtWidgets import (QMdiSubWindow, QLabel, QPushButton, QMessageBox, QMainWindow, QApplication,
-                             QWidget, QLineEdit, QHBoxLayout, QVBoxLayout, QSizePolicy, QScrollBar)
-from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
-from PyQt5.QtCore import (Qt, QObject)
 
 # Figshare Desktop Imports
-from Figshare_desktop.custom_widgets.figshare_structure_list import FigshareObjectWindow
+from Figshare_desktop.abstract_windows.figshare_structure_list import FigshareObjectWindow
+from Figshare_desktop.collections_windows.collection_info_window import CollectionInfoWindow
 from Figshare_desktop.collections_windows.new_collection_window import NewCollectionWindow
-from Figshare_desktop.projects_windows.collection_info_window import CollectionInfoWindow
-
-# Figshare API Imports
 from figshare_interface import Collections
 
 __author__ = "Tobias Gill"
@@ -45,7 +35,7 @@ class CollectionsWindow(FigshareObjectWindow):
         Returns:
             None
         """
-        if 'new_collection_window' in self.open_Windows:
+        if 'new_collection_window' in self.open_windows:
             self.open_windows.remove('new_collection_window')
             self.parent.new_collection_window.close()
         else:
@@ -65,7 +55,7 @@ class CollectionsWindow(FigshareObjectWindow):
             object_id (int): Figshare collection ID number
         """
         if 'collection_info_window' in self.open_windows:
-            open_obj_id = self.parent.colletion_info_window.collection_id
+            open_obj_id = self.parent.collection_info_window.object_id
             return True, open_obj_id
         else:
             return False, None
@@ -98,7 +88,9 @@ class CollectionsWindow(FigshareObjectWindow):
             None
         """
         self.open_windows.add('collection_info_window')
-        self.parent.collection_info_window = CollectionInfoWindow(self.app, self.token, self.parent, self.object_id)
+        self.parent.collection_info_window = CollectionInfoWindow(self.app, self.token, self.parent, object_id)
+        self.parent.mdi.addSubWindow(self.parent.collection_info_window)
+        self.parent.collection_info_window.show()
 
     def reopen_objects(self):
         """

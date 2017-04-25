@@ -1,7 +1,7 @@
 """
 New Object Window
 
-This module attempts to abstract the creation of a new Figshare object, e.g. a collection or project.
+This module abstract the creation of a new Figshare object, e.g. a collection or project.
 SubClasses should use this class as their parent, but the class itself is not meant to be used directly.
 
 Notes:
@@ -21,7 +21,7 @@ from requests import HTTPError
 
 # PyQt Imports
 from PyQt5.QtWidgets import (QMdiSubWindow, QLabel, QPushButton, QTextEdit, QGridLayout, QMainWindow, QApplication,
-                             QLineEdit, QVBoxLayout, QSizePolicy, QMessageBox)
+                             QLineEdit, QVBoxLayout, QSizePolicy, QMessageBox, QHBoxLayout, QWidget)
 from PyQt5.QtGui import (QIcon)
 from PyQt5.QtCore import (Qt)
 
@@ -72,6 +72,14 @@ class NewObjectWindow(QMdiSubWindow):
         """
         # Format the Window to the Primary Screen
         self.format_window()
+
+        self.hbox = QHBoxLayout()
+        self.hbox.addLayout(self.create_command_buttons())
+        self.hbox.addLayout(self.create_object_info_layout())
+
+        window_widget = QWidget()
+        window_widget.setLayout(self.hbox)
+        self.setWidget(window_widget)
 
     # Window Formatting
     # =================

@@ -133,7 +133,7 @@ class ProjectInfoWindow(QMdiSubWindow):
         btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
         btn.setToolTip('Open Project Articles Window')
-        #btn.setToolTipDuration(1)
+        btn.setToolTipDuration(1000)
         btn.clicked[bool].connect(self.on_articles_pressed)
         return btn
 
@@ -149,7 +149,7 @@ class ProjectInfoWindow(QMdiSubWindow):
         btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
         btn.setToolTip('Save Changes to Figshare')
-        #btn.setToolTipDuration(1)
+        btn.setToolTipDuration(1000)
         btn.pressed.connect(self.on_save_pressed)
         return btn
 

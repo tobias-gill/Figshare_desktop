@@ -32,7 +32,7 @@ from PyQt5.QtGui import (QIcon, QFont)
 from PyQt5.QtCore import (Qt)
 
 # Figshare Desktop Imports
-from ..formatting.formatting import (scaling_ratio, checkable_button, search_bar)
+from Figshare_desktop.formatting.formatting import (scaling_ratio, checkable_button, search_bar)
 
 # Figshare API Imports
 
@@ -50,7 +50,7 @@ class FigshareObjectWindow(QMdiSubWindow):
     An abstract base class for viewing high level Figshare objects.
     """
 
-    def __init__(self, app: QApplication, OAuth_token: str, parent: QMainWindow, figshare_object: str):
+    def __init__(self, app: QApplication, OAuth_token: str, parent: QMainWindow):
         """
         Initialise the window
 
@@ -58,7 +58,6 @@ class FigshareObjectWindow(QMdiSubWindow):
             app: Main thread application object.
             OAuth_token: Users Figshare authentication token obtained at login.
             parent: Reference to the applications main window, where various variables are kept.
-            figshare_object: Either project, or collection.
         """
         # Super the QMdiSubWindow init function
         super().__init__()
@@ -67,8 +66,6 @@ class FigshareObjectWindow(QMdiSubWindow):
         self.app = app
         self.token = OAuth_token
         self.parent = parent
-        self.figshare_object = figshare_object
-        self.window_name = "{}s_window".format(self.figshare_object)
 
         # Create shortned reference to open windows set in the main window
         self.open_windows = self.parent.open_windows
@@ -101,7 +98,7 @@ class FigshareObjectWindow(QMdiSubWindow):
         self.vbox = QVBoxLayout()
 
         # Add the Figshare Object buttons to the vertical box layout
-        init_finish = len(self.project_list)
+        init_finish = len(self.object_list)
         if init_finish > 4:
             init_finish = 4
         self.create_object_bar(0, init_finish)
@@ -238,11 +235,11 @@ class FigshareObjectWindow(QMdiSubWindow):
         self.buttons = {}
         i = 0
         for object_pos in range(start, finish):
-            title = self.project_list[object_pos]['title']
-            pub_date = self.project_list[object_pos]['published_date']
-            project_id = self.project_list[object_pos]['id']
-            self.create_proj_thumb(title, pub_date, project_id)
-            self.buttons[project_id] = self.project_buttons_box.itemAt(i).widget()
+            title = self.object_list[object_pos]['title']
+            pub_date = self.object_list[object_pos]['published_date']
+            object_id = self.object_list[object_pos]['id']
+            self.create_obj_thumb(title, pub_date, object_id)
+            self.buttons[object_id] = self.object_buttons_box.itemAt(i).widget()
             i += 1
 
     def management_buttons(self):
@@ -448,7 +445,7 @@ class FigshareObjectWindow(QMdiSubWindow):
             None
         """
 
-    def create_new_object_info_window(self):
+    def create_new_object_info_window(self, object_id: int):
         """
         Called when a new object info window is to be created.
 
@@ -462,6 +459,9 @@ class FigshareObjectWindow(QMdiSubWindow):
             self.parent.''_info_window = ''InfoWindow(self.app, self.token, self.parent, self.object_id)
             self.parent.mdi.addSubWindow(self.parent.''_info_window)
             self.parent.''_info_window.show()
+
+        Args:
+            object_id: Figshare object ID number.
 
         Returns:
             None
@@ -495,7 +495,7 @@ class FigshareObjectWindow(QMdiSubWindow):
                 # Close the currently open info window
                 self.close_object_info_window()
                 # Create and open new object info window
-                self.create_new_object_info_window()
+                self.create_new_object_info_window(object_id)
 
             # If the button pressed corresponds to the existing object
             else:
@@ -503,7 +503,7 @@ class FigshareObjectWindow(QMdiSubWindow):
                 self.close_object_info_window()
 
         else:
-            self.create_new_object_info_window()
+            self.create_new_object_info_window(object_id)
 
     def on_delete_btn_pressed(self):
         """

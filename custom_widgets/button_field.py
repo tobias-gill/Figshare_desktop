@@ -23,9 +23,10 @@ class QButtonField(QWidget):
     text is saved as a button/tag.
     """
 
-    def __init__(self):
+    def __init__(self, parent=None):
         super().__init__()
-
+        if parent is not None:
+            self.setParent(parent)
         self.initUI()
 
     def initUI(self):
@@ -38,12 +39,16 @@ class QButtonField(QWidget):
         self.tag_widget = QWidget()
         self.tag_widget.setLayout(self.tag_box)
 
+        # Format Geometry of Widget
+        width = 0.75 * (self.parent().geometry().width())
+        self.setMaximumWidth(width)
+
         # Create Scroll area to put the tag box widget
         self.tag_scroll = QScrollArea()
         self.tag_scroll.setWidget(self.tag_widget)
         self.tag_scroll.setWidgetResizable(True)
-        self.tag_scroll.setMinimumWidth(self.geometry().width() * (2 / 3))
-        self.tag_scroll.setMaximumWidth(self.geometry().width() * (2 / 3))
+        self.tag_scroll.setMinimumWidth(width * (2 / 3))
+        self.tag_scroll.setMaximumWidth(width * (2 / 3))
         self.tag_scroll.setToolTip('Right click to remove')
 
         # Create layout to hold tag layout and line edit
@@ -85,7 +90,7 @@ class QButtonField(QWidget):
 
         parent = self.parent()
         geom = parent.geometry()
-        frame_w = geom.width() - offset
+        frame_w = (geom.width() - offset) * 0.9
         frame_h = geom.height() - offset
         self.frame_geom = QRect(offset, offset, frame_w, frame_h)
 
@@ -93,14 +98,14 @@ class QButtonField(QWidget):
         paint_event.setBrush(QColor(255, 255, 255))
         paint_event.drawRect(offset, offset, frame_w, frame_h)
 
-    def add_tag(self, label):
+    def add_tag(self, label: str, tooltip_lbl: str=None):
         """
         Adds a tag button to the frame
         :param label: String.
         :return:
         """
 
-        btn = QTagButton(label, self.tags)
+        btn = QTagButton(label, self.tags, tooltip_lbl)
         self.tags.add(label)
         self.tag_box.addWidget(btn)
 

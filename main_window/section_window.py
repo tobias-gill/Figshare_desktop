@@ -10,6 +10,7 @@ from Figshare_desktop.formatting.formatting import scaling_ratio
 from Figshare_desktop.formatting.formatting import checkable_button
 
 from Figshare_desktop.projects_windows.projects_window import ProjectsWindow
+from Figshare_desktop.collections_windows.collections_window import CollectionsWindow
 from Figshare_desktop.data_window.data_window import DataWindow
 from Figshare_desktop.data_window.data_articles_window import DataArticlesWindow
 from Figshare_desktop.data_window.figshare_add_window import FigshareAddWindow
@@ -97,6 +98,7 @@ class sectionWindow(QMdiSubWindow):
         # Collections
         collections_btn = QPushButton('Collections', self)
         checkable_button(self.app, collections_btn)
+        collections_btn.clicked[bool].connect(self.on_collections_btn_pressed)
 
         self.collections_btn = collections_btn
 
@@ -128,7 +130,18 @@ class sectionWindow(QMdiSubWindow):
         """
         Called when the projects button is pressed. Is also called after some project information edits.
         """
+
         # Check to see if any other sections windows are open
+        if 'collections_window' in self.open_windows:
+            self.close_collections_window()
+            if self.collections_btn.isChecked():
+                self.collections_btn.toggle()
+
+        if 'new_collection_window' in self.open_windows:
+            self.close_new_collection_window()
+            if self.collections_btn.isChecked():
+                self.collections_btn.toggle()
+
         if 'local_data_window' in self.open_windows:
             self.close_local_data_window()
             if self.localdata_btn.isChecked():
@@ -149,6 +162,40 @@ class sectionWindow(QMdiSubWindow):
             self.parent.mdi.addSubWindow(self.parent.projects_window)
             self.parent.projects_window.show()
 
+    def on_collections_btn_pressed(self):
+        """
+        Called when the collections button is pressed. Is also called by child windows to re-initialise after edits.
+        Returns:
+            None
+        """
+        # Check to see if any other sections windows are open
+        if 'local_data_window' in self.open_windows:
+            self.close_local_data_window()
+            if self.localdata_btn.isChecked():
+                self.localdata_btn.toggle()
+
+        if 'projects_window' in self.open_windows:
+            self.close_projects_window()
+            if self.projects_btn.isChecked():
+                self.projects_btn.toggle()
+        if 'new_project_window' in self.open_windows:
+            self.close_new_projects_window()
+            if self.projects_btn.isChecked():
+                self.projects_btn.toggle()
+
+        # check to see if the collections window is already open
+        if 'collections_window' in self.open_windows:
+            self.close_collections_window()
+        elif 'new_collection_window' in self.open_windows:
+            self.close_new_collection_window()
+
+        # If no collections windows are open then create the collections window and show
+        elif 'collections_window' not in self.open_windows and 'new_collection_window' not in self.open_windows:
+            self.open_windows.add('collections_window')
+            self.parent.collections_window = CollectionsWindow(self.app, self.token, self.parent)
+            self.parent.mdi.addSubWindow(self.parent.collections_window)
+            self.parent.collections_window.show()
+
     def on_local_data_btn_pressed(self):
         """
         Called when the local data button is pressed.
@@ -164,6 +211,15 @@ class sectionWindow(QMdiSubWindow):
             self.close_new_projects_window()
             if self.projects_btn.isChecked():
                 self.projects_btn.toggle()
+
+        if 'collections_window' in self.open_windows:
+            self.close_collections_window()
+            if self.collections_btn.isChecked():
+                self.collections_btn.toggle()
+        if 'new_collection_window' in self.open_windows:
+            self.close_new_collection_window()
+            if self.collections_btn.isChecked():
+                self.collections_btn.toggle()
 
         # Check to see if window is already open
         if 'local_data_window' in self.open_windows:
@@ -216,6 +272,41 @@ class sectionWindow(QMdiSubWindow):
         """
         self.open_windows.remove('new_project_window')
         self.parent.new_project_window.close()
+
+    def close_collections_window(self):
+        """
+        Called to close the collections window and any children
+
+        Returns:
+            None
+        """
+        self.open_windows.remove('collections_window')
+        self.parent.collections_window.close()
+
+        # Check to see if a collections info window is open
+        if 'collection_info_window' in self.open_windows:
+            self.open_windows.remove('collection_info_window')
+            self.parent.collection_info_window.close()
+
+        # Check to see if a collection articles window is open
+        if 'collection_articles_window' in self.open_windows:
+            self.open_windows.remove('collection_articles_window')
+            self.parent.collection_articles_window.close()
+
+        # Check to see if a collection article edit window is open
+        if 'article_edit_window' in self.open_windows:
+            self.open_windows.remove('article_edit_window')
+            self.parent.article_edit_window.close()
+
+    def close_new_collection_window(self):
+        """
+        Called to close the new collections window
+
+        Returns:
+            None
+        """
+        self.open_windows.remove('new_collection_window')
+        self.parent.new_collection_window.close()
 
     def close_local_data_window(self):
 
