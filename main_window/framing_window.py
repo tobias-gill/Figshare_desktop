@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         self.local_articles = {}
         self.next_local_id = 0
 
-        self.categories = self.get_figshare_cats()
+        self.id_categories, self.name_categories = self.get_figshare_cats()
 
     def initUI(self):
         """
@@ -143,8 +143,9 @@ class MainWindow(QMainWindow):
         """
         # Get a dictionary of categories from Figshare with id and name pairs
         allowed_cats = issue_request(method='GET', endpoint='categories', token=self.token)
-        cat_dict = {}
+        id_dict = {}
+        name_dict = {}
         for cat in allowed_cats:
-            cat_dict[cat['id']] = cat['title']
-
-        return cat_dict
+            id_dict[cat['id']] = cat['title']
+            name_dict[cat['title']] = cat['id']
+        return id_dict, name_dict

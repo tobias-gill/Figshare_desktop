@@ -40,16 +40,17 @@ class QButtonField(QWidget):
         self.tag_widget.setLayout(self.tag_box)
 
         # Format Geometry of Widget
-        width = 0.75 * (self.parent().geometry().width())
-        self.setMaximumWidth(width)
+        self.width = 0.75 * (self.parent().geometry().width())
+        self.setMaximumWidth(self.width)
 
         # Create Scroll area to put the tag box widget
         self.tag_scroll = QScrollArea()
         self.tag_scroll.setWidget(self.tag_widget)
         self.tag_scroll.setWidgetResizable(True)
-        self.tag_scroll.setMinimumWidth(width * (2 / 3))
-        self.tag_scroll.setMaximumWidth(width * (2 / 3))
+        self.tag_scroll.setMinimumWidth(self.width * (2 / 3))
+        self.tag_scroll.setMaximumWidth(self.width * (2 / 3))
         self.tag_scroll.setToolTip('Right click to remove')
+        self.tag_scroll.setToolTipDuration(1000)
 
         # Create layout to hold tag layout and line edit
         self.hbox = QHBoxLayout()

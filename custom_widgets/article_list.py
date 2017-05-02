@@ -156,7 +156,7 @@ class ArticleList(QWidget):
         combo.setMaximumWidth(self.geometry().width() / 4)
         search_combo(self.app, combo)
         combo.setToolTip('Set search field parameter. Leave blank for general search.')
-        combo.setToolTipDuration(1)
+        combo.setToolTipDuration(1000)
 
         combo.addItem('')
         combo.addItems(self.get_fields())
