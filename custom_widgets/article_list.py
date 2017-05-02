@@ -249,13 +249,11 @@ class ArticleList(QWidget):
 
     def search_on_clear(self):
         """
-        Called when the search bar is cleared
-        :param search_text: search bar text
+        Called when the search bar is cleared.
         :return:
         """
         self.initFig(show_progress=False)
         self.tree.clear()
-        self.fill_tree(self.tree_headers)
 
     def on_headers_set_pressed(self):
         """
