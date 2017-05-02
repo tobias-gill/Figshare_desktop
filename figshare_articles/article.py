@@ -548,3 +548,7 @@ class Article(object):
             None
         """
         return 'article'
+
+    def index_schema(self):
+
+        return {}

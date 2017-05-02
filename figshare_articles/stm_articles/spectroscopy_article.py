@@ -103,3 +103,35 @@ class SpecArticle(Article):
 
     def get_type(self):
         return 'stm_spec'
+
+    def index_schema(self):
+        """
+        Creates a dictionary to create a Whoosh index schema from
+        :return:
+        """
+        schema_dict = {'type': ('text', True),
+                       'vgap': ('numeric', True),
+                       'current': ('numeric', True),
+                       'vres': ('numeric', True),
+                       'vinc': ('numeric', True),
+                       'vreal': ('numeric', True),
+                       'vstart': ('numeric', True),
+                       'unitv': ('text', True),
+                       'unit': ('text', True),
+                       'date': ('text', True),
+                       'direction': ('text', True),
+                       'sample': ('text', True),
+                       'users': ('keyword', True),
+                       'substrate': ('text', True),
+                       'adsorbate': ('text', True),
+                       'prep': ('text', True),
+                       'notebook': ('keyword', True),
+                       'notes': ('text', True),
+                       'vmod': ('numeric', True),
+                       'vsen': ('numeric', True),
+                       'freq': ('numeric', True),
+                       'tmeas': ('numeric', True),
+                       'phase': ('numeric', True),
+                       'harm': ('numeric', True)
+                       }
+        return schema_dict

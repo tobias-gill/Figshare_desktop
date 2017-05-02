@@ -119,7 +119,7 @@ class DataArticlesWindow(QMdiSubWindow):
         self.setWindowFlags(Qt.FramelessWindowHint)
 
     ####
-    # WIndow Widgets
+    # Window Widgets
     ####
 
     def delete_btn(self):

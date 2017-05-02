@@ -10,23 +10,24 @@ Todo:
 
 """
 
+# Standard Imports
 import os
-import math
 from requests import HTTPError
 
+# PyQt Imports
 from PyQt5.QtWidgets import (QWidget, QApplication, QPushButton, QMainWindow, QMessageBox, QFileDialog, QMdiSubWindow,
-                             QTextEdit, QGridLayout, QHBoxLayout, QVBoxLayout, QSizePolicy, QFrame)
-from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
+                             QHBoxLayout, QVBoxLayout)
+from PyQt5.QtGui import (QIcon)
 from PyQt5.QtCore import (Qt)
 
+# Figshare Desktop Imports
 from Figshare_desktop.custom_widgets.collection_article_list import ArticleList
-
-from Figshare_desktop.formatting.formatting import (grid_label, grid_edit, press_button)
-
+from Figshare_desktop.formatting.formatting import (press_button)
 from Figshare_desktop.article_edit_window.article_edit_window import ArticleEditWindow
-
 from Figshare_desktop.figshare_articles.determine_type import gen_article
+from Figshare_desktop.data_window.search_index import ArticleIndex
 
+# Figshare API Imports
 from figshare_interface import (Collections)
 from figshare_interface.http_requests.figshare_requests import (download_file)
 
@@ -41,13 +42,13 @@ __status__ = "Development"
 
 class CollectionsArticlesWindow(QMdiSubWindow):
     """
-    SubWindow of the Projects Section
+    SubWindow of the Collection Section
     =================================
 
-    This window is used to display a list of articles within a given project and allow for the searching,publishing,
+    This window is used to display a list of articles within a given collection and allow for the searching,publishing,
     editing, deleting, and downloading of their files.
 
-    Searching is performed using the Fighshare elastic search engine.
+    Searching is performed using a locally generated Whoosh Search engine.
 
     Editing of article metadata is performed in a separate window that replaces this one.
     """
@@ -74,6 +75,7 @@ class CollectionsArticlesWindow(QMdiSubWindow):
         self.collection_id = collection_id
 
         self.initFig(self.collection_id)
+        self.initIndex()
         self.initUI()
 
     def initFig(self, collection_id: int):
@@ -89,6 +91,35 @@ class CollectionsArticlesWindow(QMdiSubWindow):
         collections = Collections(self.token)
         self.collection_info = collections.get_info(collection_id)
         self.article_list = collections.get_articles(collection_id)
+
+    def initIndex(self):
+        """
+        Initiates the local search index for Figshare articles in the current project.
+
+        Returns:
+            None
+        """
+        if self.parent.figshare_article_index is None:
+
+            # Create the Figshare article index
+            self.parent.figshare_article_index = ArticleIndex()
+
+            # Create the default Figshare metadata schema dictionary
+            self.parent.figshare_article_index.create_schema('figshare_articles')
+
+            self.parent.figshare_article_index.add_ID(schema='figshare_articles', field_name='id', stored=True,
+                                                      unique=True)
+            self.parent.figshare_article_index.add_TEXT('figshare_articles', 'title', True)
+            self.parent.figshare_article_index.add_TEXT('figshare_articles', 'description')
+            self.parent.figshare_article_index.add_KEYWORD('figshare_articles', 'tags', True)
+            self.parent.figshare_article_index.add_ID('figshare_articles', 'references')
+            self.parent.figshare_article_index.add_KEYWORD('figshare_articles', 'categories')
+            self.parent.figshare_article_index.add_KEYWORD('figshare_articles', 'authors')
+            self.parent.figshare_article_index.add_ID('figshare_articles', 'defined_type')
+            self.parent.figshare_article_index.add_TEXT('figshare_articles', 'funding')
+            self.parent.figshare_article_index.add_ID('figshare_articles', 'license')
+
+            self.parent.figshare_article_index.document_types.add('article')
 
     def initUI(self):
         """

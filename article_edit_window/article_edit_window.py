@@ -2,21 +2,24 @@
 
 """
 
+# Standard Imports
 import os
 from requests import HTTPError
 
+# PyQt Imports
 from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QMessageBox, QScrollArea, QMdiSubWindow,
-                             QTextEdit, QGridLayout, QHBoxLayout, QVBoxLayout, QSizePolicy, QTabWidget, QComboBox)
-from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
-from PyQt5.QtCore import (Qt, QPoint)
+                             QTextEdit, QGridLayout, QHBoxLayout, QVBoxLayout, QTabWidget, QComboBox)
+from PyQt5.QtGui import (QIcon)
+from PyQt5.QtCore import (Qt)
 
-from Figshare_desktop.formatting.formatting import (label_font)
-
+# Figshare Desktop Imports
 from Figshare_desktop.custom_widgets.button_field import QButtonField
+from Figshare_desktop.custom_widgets.author_field import AuthorField
+from Figshare_desktop.custom_widgets.categories_field import CategoriesField
+from Figshare_desktop.formatting.formatting import (grid_label, grid_edit, press_button)
 
-from Figshare_desktop.formatting.formatting import (grid_label, grid_edit, press_button, grid_title)
-
-from figshare_interface import (Groups, Projects)
+# Figshare API Interface Imports
+from figshare_interface import (Projects)
 
 __author__ = "Tobias Gill"
 __credits__ = ["Tobias Gill", "Adrian-Tudor Panescu", "Miriam Keshani"]
@@ -229,8 +232,8 @@ class ArticleEditWindow(QMdiSubWindow):
         descr_lbl, descr_edit = self.create_textedit('Description', self.figshare_metadata['description'])
         ref_lbl, ref_field = self.create_buttonfield('References', self.figshare_metadata['references'])
         tags_lbl, tags_field = self.create_buttonfield('Tags', self.figshare_metadata['tags'])
-        cat_lbl, cat_field = self.create_buttonfield('Categories', self.figshare_metadata['categories'])
-        auth_lbl, auth_field = self.create_buttonfield('Authors', self.figshare_metadata['authors'])
+        cat_lbl, cat_field = self.create_categories_field('Categories', self.figshare_metadata['categories'])
+        auth_lbl, auth_field = self.create_author_field('Authors', self.figshare_metadata['authors'])
         def_lbl, def_combo = self.create_combo('Defined Type', self.defined_type_dict,
                                                self.figshare_metadata['defined_type'])
 
@@ -362,6 +365,45 @@ class ArticleEditWindow(QMdiSubWindow):
                     button_field.add_tag(tag)
 
         return lbl, button_field
+
+    def create_author_field(self, label, fill_list):
+        """
+        Creates and formats a QLabel and Author formatted QButtonField pair.
+        Args:
+            label: Name of the field.
+            fill_list: List of authors.
+
+        Returns:
+            lbl (QLabel): Label object.
+            auth_field (AuthorField): QButton field, authors sub class.
+        """
+        lbl = self.create_label(label)
+
+        auth_field = AuthorField(parent=self)
+        for auth_dict in fill_list:
+            auth_field.add_tag(auth_dict)
+
+        return lbl, auth_field
+
+    def create_categories_field(self, label: str, fill_list: list):
+        """
+        Creates a label, QButton field formatted for Figshare categories.
+
+        Args:
+            label: Field label.
+            fill_list: list of category integers.
+
+        Returns:
+            lbl (QLabel): Label object for UI.
+            cat_field (CategoriesField): QButtonField formatted for figshare categories.
+        """
+        lbl = self.create_label(label)
+
+        cat_field = CategoriesField(self.parent.id_categories, self.parent.name_categories, parent=self)
+        for cat in fill_list:
+            cat_field.add_tag(cat)
+
+        return lbl, cat_field
 
     def create_combo(self, label, metadata_dict, fill):
         """

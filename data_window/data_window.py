@@ -158,25 +158,34 @@ class DataWindow(QMdiSubWindow):
         Called when the open selection button is clicked. Either open or closes the metadata window
         :return:
         """
+        # Retrieve a set of file paths
         file_paths = self.get_selection_set()
+
+        # Locally reference the Article List Widget
         article_tree = self.parent.data_articles_window.article_tree
 
+        # Prevent the user from editting, searching, etc. while new articles are created.
         article_tree.disable_fields()
 
+        # Create an article creation worker
         worker = ArticleCreationWorker(self.token, self.parent, file_paths)
 
+        # Create the thread.
         load_articles_thread = QThread()
         load_articles_thread.setObjectName('local_articles_thread')
         self.__threads.append((load_articles_thread, worker))
 
+        # Add the worker to the thread
         worker.moveToThread(load_articles_thread)
 
+        # Connect signals from worker
         worker.sig_step.connect(article_tree.add_to_tree)
         worker.sig_done.connect(article_tree.enable_fields)
         worker.sig_done.connect(article_tree.update_search_field)
         worker.sig_done.connect(self.parent.data_articles_window.check_edit)
-
         load_articles_thread.started.connect(worker.work)
+
+        # Begin worker thread
         load_articles_thread.start()
 
     def get_selection_set(self):
@@ -315,12 +324,16 @@ class ArticleCreationWorker(QObject):
         else:
             return local_id
 
-
     def does_local_article_exist(self, file_path: str):
         """
-        Checks to see if an article already exists with the same title
-        :param file_path:
-        :return:
+        Checks to see if an article already exists with the same title in the local article set.
+
+        Args:
+            file_path: local path to the file from which to create an article.
+
+        Returns:
+            article_exits (bool): True of False depending on whether article already exists.
+            article_id (str): If article with same title is found returns the article ID, otherwise None is returned.
         """
         # Get the file name from the full path
         file_name = os.path.split(file_path)[-1]

@@ -57,6 +57,7 @@ class ArticleList(QWidget):
         worker.moveToThread(thread)
 
         worker.sig_step.connect(self.add_to_tree)
+        worker.sig_done.connect(self.update_search_field)
         worker.sig_done.connect(self.enable_fields)
 
         thread.started.connect(worker.work)
@@ -135,7 +136,7 @@ class ArticleList(QWidget):
         edit.setClearButtonEnabled(True)
         # Add mouse over text
         edit.setToolTip('Search for specific Figshare Projects')
-        edit.setToolTipDuration(1)
+        edit.setToolTipDuration(2000)
         # Connect search function to the return key
         edit.returnPressed.connect(self.search_on_return)
         # Connect the clear button to our own function
@@ -156,13 +157,12 @@ class ArticleList(QWidget):
         combo.setMaximumWidth(self.geometry().width() / 4)
         search_combo(self.app, combo)
         combo.setToolTip('Set search field parameter. Leave blank for general search.')
-        combo.setToolTipDuration(1)
-
-        combo.addItem('')
-        combo.addItems(self.get_fields())
-        combo.setEnabled(False)
+        combo.setToolTipDuration(2000)
 
         self.search_field_combo = combo
+        self.update_search_field()
+        self.search_field_combo.setEnabled(False)
+
         return self.search_field_combo
 
     def headers_selection_button(self):
@@ -183,6 +183,23 @@ class ArticleList(QWidget):
     # Widgets Actions
     #####
 
+    @pyqtSlot(bool)
+    def update_search_field(self):
+        """
+        Updates the items in the search field combobox.
+
+        Returns:
+            None
+        """
+        # Clear combo and add empty first item
+        self.search_field_combo.clear()
+        self.search_field_combo.addItem('')
+
+        # Get list of fields in Figshare article search index
+        fields = self.parent.figshare_article_index.get_fields(schema='figshare_articles')
+        self.search_field_combo.addItems(fields)
+
+    @pyqtSlot(bool)
     def enable_fields(self):
         """
         Enables all fields
@@ -192,29 +209,46 @@ class ArticleList(QWidget):
         self.search_field_combo.setEnabled(True)
         self.headers_btn.setEnabled(True)
 
-    def fill_tree(self, headers):
+    def disable_fields(self):
+        """
+        Disables all fields.
+
+        Returns:
+            None
+        """
+        self.search_edit.setEnabled(False)
+        self.search_field_combo.setEnabled(False)
+        self.headers_btn.setEnabled(False)
+
+    def fill_tree(self, headers: list, article_ids: set):
         """
         Called to fill the QTree with articles
-        :param headers: list of strings. For article information keys to be filled into the columns of the tree
-        :return:
-        """
 
-        for article in self.articles:
-            article_id = str(article['id'])  # Get the article id number and convert to a string
-            local_article = self.parent.figshare_articles[article_id] # Get the local version of the article
-            local_article.gen_qtree_item(headers, local_article.input_dicts())  # Update the article qtreeitem
-            self.tree.addTopLevelItem(local_article.qtreeitem)  # Add the article qtree item to the tree
+        Args:
+            headers: Metadata key names in order to which appear in the QTreeWidget.
+            article_ids: Set of Figshare article ID numbers from to fill tree with.
+
+        Returns:
+            None
+        """
+        self.tree.clear()
+        for article_id in article_ids:
+            self.add_to_tree(article_id, headers=headers)
 
     @pyqtSlot(int)
-    def add_to_tree(self, article_id: int):
+    def add_to_tree(self, article_id: int, headers: list=None):
         """
         Adds a single article to the QTree
         :param article_id: int. or str. figshare article id
         :return:
         """
+        if headers is None:
+            headers = self.tree_headers
+
         article_id = str(article_id)
+
         local_article = self.parent.figshare_articles[article_id]
-        local_article.gen_qtree_item(self.tree_headers, local_article.input_dicts())
+        local_article.gen_qtree_item(headers, local_article.input_dicts())
         self.tree.addTopLevelItem(local_article.qtreeitem)
 
         # Adjust the size of the columns to the contents
@@ -230,7 +264,7 @@ class ArticleList(QWidget):
         header_item = QTreeWidgetItem(headers)
         self.tree.setHeaderItem(header_item)
         self.tree.clear()
-        self.fill_tree(headers)
+        self.fill_tree(headers, self.article_ids)
         # Adjust the size of the columns to the contents
         for column in range(self.tree.columnCount()):
             self.tree.resizeColumnToContents(column)
@@ -238,14 +272,26 @@ class ArticleList(QWidget):
     def search_on_return(self):
         """
         Called when return is pressed in the search bar.
-        :param search_text: Search text
         :return:
         """
-        search_field = self.search_field_combo.currentText()
-        search_text = self.search_edit.text()
-        self.articles = self.search_articles(search_field, search_text, self.token)
-        self.tree.clear()
-        self.fill_tree(self.tree_headers)
+        field = self.search_field_combo.currentText()
+        query = self.search_edit.text()
+
+        if query == '':
+            self.search_on_clear()
+        else:
+
+            article_index = self.parent.figshare_article_index
+
+            results = article_index.perform_search(schema='figshare_articles', field=field, query=query)
+
+            self.result_ids = set()
+
+            for docnum, val_dict in results.items():
+                if 'id' in val_dict:
+                    self.result_ids.add(val_dict['id'])
+
+            self.fill_tree(self.tree_headers, self.result_ids)
 
     def search_on_clear(self):
         """
@@ -253,9 +299,7 @@ class ArticleList(QWidget):
         :param search_text: search bar text
         :return:
         """
-        self.initFig(show_progress=False)
-        self.tree.clear()
-        self.fill_tree(self.tree_headers)
+        self.fill_tree(self.tree_headers, self.article_ids)
 
     def on_headers_set_pressed(self):
         """
@@ -374,40 +418,6 @@ class ArticleList(QWidget):
         return article_ids
 
     #####
-    # Figshare Article Functions
-    #####
-
-    def does_article_exist_locally(self, article_id):
-        """
-        Checks to see if there is a local version of the article.
-        :param article_id: int. Figshare article id number
-        :return: Bool. Dependent on if local version of article exists or not
-        """
-
-        # Convert article id to a string. Should have already been done, but just in case we call it somewhere else
-        a_id = str(article_id)
-
-        if a_id in self.parent.figshare_articles:
-            return True
-        else:
-            return False
-
-    def create_local_article(self, figshare_article):
-        """
-        Given a Figshare article id number this function will create a local version if one does not already exist
-        :param figshare_article: Dict. Figshare article returned from Projects.list_articles()
-        :return:
-        """
-        # Get the article id number and title
-        article_id = str(figshare_article['id'])  # Convert int to str
-        article_title = figshare_article['title']
-
-        # If article is not already stored locally create a
-        if not self.does_article_exist_locally(article_id):
-            article = gen_article(article_title, self.token, None, article_id)
-            self.parent.figshare_articles[article_id] = article
-
-    #####
     # Figshare API Functions
     #####
 
@@ -430,34 +440,6 @@ class ArticleList(QWidget):
             for d in result['custom_fields']:
                 keys.add(d['name'])
             return sorted(list(keys))
-        else:
-            return []
-
-    def search_articles(self, search_field, search_text, token):
-        """
-        Called to search the current project articles
-        :param project_id: int. Figshare project id number
-        :param search_field: string. metadata field
-        :param search_text: string. elastic search parameters
-        :param token: OAuth token
-        :return:
-        """
-
-        collections = Collections(token)
-
-        if search_field != '':
-            search_string = ":{}: {}".format(search_field, search_text)
-        else:
-            search_string = "{}".format(search_text)
-
-        if len(search_string) >= 3:
-            results = collections.search_articles(search_string)
-            project_results = []
-            for result in results:
-                if result['id'] in self.article_ids:
-                    project_results.append(result)
-            return project_results
-
         else:
             return []
 
@@ -509,6 +491,48 @@ class ArticleLoadWorker(QObject):
         if not self.does_article_exist_locally(article_id):
             article = gen_article(article_title, self.token, None, article_id)
             self.parent.figshare_articles[article_id] = article
+
+            # Locally reference the Figshare Article Index
+            article_index = self.parent.figshare_article_index
+
+            # Get the type of the article
+            article_type = article.get_type()
+
+            # Check to see if the article type has been added to the articles index.
+            # If note we will need to create new fields in the schema.
+            if article_type not in article_index.document_types:
+                # Add the new file type to the index schema
+                article_index.document_types.add(article_type)
+
+                # Define the schema we wish to add fields to
+                schema = 'figshare_articles'
+
+                # From the article type created get the index dictionary and add fields to the index
+                for field_name, field_type in article.index_schema().items():
+                    if field_name not in article_index.get_fields(schema):
+                        if field_type[0] == 'id':
+                            article_index.add_ID(schema=schema, field_name=field_name, stored=field_type[1],
+                                             unique=True)
+                        elif field_type[0] == 'text':
+                            article_index.add_TEXT(schema, field_name, field_type[1])
+                        elif field_type[0] == 'keyword':
+                            article_index.add_KEYWORD(schema, field_name, field_type[1])
+                        elif field_type[0] == 'numeric':
+                            article_index.add_NUMERIC(schema, field_name, field_type[1])
+                        elif field_type[0] == 'datetime':
+                            article_index.add_DATETIME(schema, field_name, field_type[1])
+                        elif field_type[0] == 'boolean':
+                            article_index.add_BOOLEAN(schema, field_name, field_type[1])
+                        elif field_type[0] == 'ngram':
+                            article_index.add_NGRAM(schema, field_name, field_type[1])
+
+            # Get single dictionary of all fields associated to the article
+            document_dict = {}
+            for d in article.input_dicts():
+                document_dict = {**document_dict, **d}
+
+            # Add document to index
+            article_index.addDocument(schema='figshare_articles', data_dict=document_dict)
 
     def does_article_exist_locally(self, article_id):
         """

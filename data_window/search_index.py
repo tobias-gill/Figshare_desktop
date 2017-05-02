@@ -160,23 +160,33 @@ class ArticleIndex(object):
     # Document Functions
     #####
 
-    def addDocument(self, schema, data_dict: dict):
+    def addDocument(self, schema: str, data_dict: dict):
         """
         Adds a document to the index with fields from a dictionary
-        :param data_dict: dict.
-        :return:
+
+        Args:
+            schema: Name of the Whoosh index schema to add document to.
+            data_dict: Dictionary of document metadata from which schema relevant key, value pairs will be extracted.
+
+        Returns:
+            None
         """
+        # Create an empty dictionary to hold schema relevant key, value pairs.
         document_dict = {}
+
         for key, value in data_dict.items():
+            # Check to see if key is in the schema.
             if key in self.get_fields(schema):
-                if value is not None:
+                if value is not None and value != '':
+                    # For lists create a string with comma separated tags.
                     if type(value) is list and value != []:
                         tags = ''
                         for tag in value:
                             tags += '{},'.format(tag)
-                        value = tags[:-1]
-                        print(value)
-                    document_dict[key] = u"{}".format(value)
+                        value = tags[:-1]  # Drop the last comma.
+                    document_dict[key] = u"{}".format(value)  # Convert value to unicode and add to the doc dict
+
+        # Add the new document to the inedx schema
         writer = self.schemas[schema].writer()
         writer.add_document(**document_dict)
         writer.commit()
@@ -191,7 +201,7 @@ class ArticleIndex(object):
         document_dict = {}
         for key, value in data_dict.items():
             if key in self.get_fields(schema):
-                if value is not None:
+                if value is not None and value != '':
                     if type(value) is list and value != []:
                         tags = ''
                         for tag in value:
@@ -238,8 +248,9 @@ class ArticleIndex(object):
                 search_query = parser.parse(query)
                 results = searcher.search_page(search_query, page, pagelen)
 
-                for doc in range(len(results)):
-                    results_dict[results.docnum(doc)] = results.results.fields(doc)
+                if results.total > 0:
+                    for doc in range(results.pagelen):
+                        results_dict[results.docnum(doc)] = results.results.fields(doc)
 
                 last_page = results.is_last_page()
                 page += 1

@@ -72,7 +72,7 @@ class LocalArticleList(ArticleList):
         combo.setMaximumWidth(self.geometry().width() / 4)
         search_combo(self.app, combo)
         combo.setToolTip('Set search field parameter. Leave blank for general search.')
-        combo.setToolTipDuration(1)
+        combo.setToolTipDuration(1000)
 
         self.search_field_combo = combo
 
@@ -97,25 +97,6 @@ class LocalArticleList(ArticleList):
         self.search_field_combo.clear()
         self.search_field_combo.addItem('')
         self.search_field_combo.addItems(self.parent.local_article_index.get_fields(schema='local_articles'))
-
-    def disable_fields(self):
-        """
-        Disables all fields
-        :return:
-        """
-        self.search_edit.setEnabled(False)
-        self.search_field_combo.setEnabled(False)
-        self.headers_btn.setEnabled(False)
-
-    @pyqtSlot(bool)
-    def enable_fields(self):
-        """
-        Enables all fields
-        :return:
-        """
-        self.search_edit.setEnabled(True)
-        self.search_field_combo.setEnabled(True)
-        self.headers_btn.setEnabled(True)
 
     @pyqtSlot(str)
     def add_to_tree(self, local_article_id: str):
@@ -158,7 +139,6 @@ class LocalArticleList(ArticleList):
             local_article = self.parent.local_articles[article_id]
             local_article.gen_qtree_item(headers, local_article.input_dicts())
             self.tree.addTopLevelItem(local_article.qtreeitem)
-
 
     def search_on_return(self):
         """

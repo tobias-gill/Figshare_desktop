@@ -10,24 +10,25 @@ Todo:
 
 """
 
+# Standard Imports
 import os
-import math
 from requests import HTTPError
 
+# PyQt Imports
 from PyQt5.QtWidgets import (QWidget, QApplication, QPushButton, QMainWindow, QMessageBox, QFileDialog, QMdiSubWindow,
-                             QTextEdit, QGridLayout, QHBoxLayout, QVBoxLayout, QSizePolicy, QFrame)
-from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
+                             QHBoxLayout, QVBoxLayout)
+from PyQt5.QtGui import (QIcon)
 from PyQt5.QtCore import (Qt)
 
+# Figshare Desktop Imports
 from Figshare_desktop.custom_widgets.article_list import ArticleList
-
-from Figshare_desktop.formatting.formatting import (grid_label, grid_edit, press_button)
-
+from Figshare_desktop.formatting.formatting import (press_button)
 from Figshare_desktop.article_edit_window.article_edit_window import ArticleEditWindow
-
 from Figshare_desktop.figshare_articles.determine_type import gen_article
+from Figshare_desktop.data_window.search_index import ArticleIndex
 
-from figshare_interface import (Groups, Projects)
+# Figshare API Imports
+from figshare_interface import (Projects)
 from figshare_interface.http_requests.figshare_requests import (download_file)
 
 __author__ = "Tobias Gill"
@@ -74,11 +75,12 @@ class ProjectsArticlesWindow(QMdiSubWindow):
         self.project_id = project_id
 
         self.initFig(self.project_id)
+        self.initIndex()
         self.initUI()
 
     def initFig(self, project_id: int):
         """
-        Initilizes Figshare information for the given project by retrieving the list of articles in the project.
+        Initialises Figshare information for the given project by retrieving the list of articles in the project.
 
         Args:
             project_id: Figshare project ID number.
@@ -89,6 +91,35 @@ class ProjectsArticlesWindow(QMdiSubWindow):
         projects = Projects(self.token)
         self.project_info = projects.get_info(project_id)
         self.article_list = projects.list_articles(project_id)
+
+    def initIndex(self):
+        """
+        Initiates the local search index for Figshare articles in the current project.
+
+        Returns:
+            None
+        """
+        if self.parent.figshare_article_index is None:
+
+            # Create the Figshare article index
+            self.parent.figshare_article_index = ArticleIndex()
+
+            # Create the default Figshare metadata schema dictionary
+            self.parent.figshare_article_index.create_schema('figshare_articles')
+
+            self.parent.figshare_article_index.add_ID(schema='figshare_articles', field_name='id', stored=True,
+                                                      unique=True)
+            self.parent.figshare_article_index.add_TEXT('figshare_articles', 'title', True)
+            self.parent.figshare_article_index.add_TEXT('figshare_articles', 'description')
+            self.parent.figshare_article_index.add_KEYWORD('figshare_articles', 'tags', True)
+            self.parent.figshare_article_index.add_ID('figshare_articles', 'references')
+            self.parent.figshare_article_index.add_KEYWORD('figshare_articles', 'categories')
+            self.parent.figshare_article_index.add_KEYWORD('figshare_articles', 'authors')
+            self.parent.figshare_article_index.add_ID('figshare_articles', 'defined_type')
+            self.parent.figshare_article_index.add_TEXT('figshare_articles', 'funding')
+            self.parent.figshare_article_index.add_ID('figshare_articles', 'license')
+
+            self.parent.figshare_article_index.document_types.add('article')
 
     def initUI(self):
         """
@@ -426,6 +457,7 @@ class ProjectsArticlesWindow(QMdiSubWindow):
                     pass
                 else:
                     pass
+
     def publish_articles(self, article_ids):
         """
         Publishes all articles given

@@ -102,3 +102,31 @@ class TopoArticle(Article):
 
     def get_type(self):
         return 'stm_topo'
+
+    def index_schema(self):
+        """
+        Creates a dictionary to create a Whoosh index schema from
+        :return:
+        """
+        schema_dict = {'type': ('id', True),
+                       'vgap': ('numeric', True),
+                       'current': ('numeric', True),
+                       'xres': ('numeric', True),
+                       'yres': ('numeric', True),
+                       'xinc': ('numeric', True),
+                       'yinc': ('numeric', True),
+                       'xreal': ('numeric', True),
+                       'yreal': ('numeric', True),
+                       'unit': ('id', True),
+                       'unitxy': ('id', True),
+                       'date': ('text', True),
+                       'direction': ('keyword', True),
+                       'sample': ('text', True),
+                       'users': ('keyword', True),
+                       'substrate': ('text', True),
+                       'adsorbate': ('text', True),
+                       'prep': ('text', True),
+                       'notebook': ('keyword', True),
+                       'notes': ('text', True)
+                       }
+        return schema_dict

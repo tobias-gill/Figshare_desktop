@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QGridLayout, QSc
 from Figshare_desktop.abstract_windows.object_info_window import ObjectInfoWindow
 from Figshare_desktop.collections_windows.collection_articles_window import CollectionsArticlesWindow
 from Figshare_desktop.custom_widgets.button_field import QButtonField
+from Figshare_desktop.custom_widgets.categories_field import CategoriesField
 
 # Figshare API imports
 from figshare_interface.figshare_structures.collections import Collections
@@ -160,12 +161,9 @@ class CollectionInfoWindow(ObjectInfoWindow):
         self.auth_field = auth_field
 
         # Categories Field
-        cat_field = QButtonField(scroll_area)
+        cat_field = CategoriesField(self.parent.id_categories, self.parent.name_categories, parent=scroll_area)
         for cat in self.object_info['categories']:
-            if cat['id'] in self.parent.categories:
-                cat_name = cat['title']
-                cat_id = str(cat['id'])
-                cat_field.add_tag(cat_name, cat_id)
+            cat_field.add_tag(cat)
         self.cat_field = cat_field
 
         # Tags Field

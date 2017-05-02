@@ -88,7 +88,7 @@ class LocalTopoArticle(TopoArticle, LocalArticle):
         Creates a dictionary to create a Whoosh index schema from
         :return:
         """
-        schema_dict = {'type': ('id', True),
+        schema_dict = {'type': ('text', True),
                        'vgap': ('numeric', True),
                        'current': ('numeric', True),
                        'xres': ('numeric', True),
@@ -97,8 +97,8 @@ class LocalTopoArticle(TopoArticle, LocalArticle):
                        'yinc': ('numeric', True),
                        'xreal': ('numeric', True),
                        'yreal': ('numeric', True),
-                       'unit': ('id', True),
-                       'unitxy': ('id', True),
+                       'unit': ('text', True),
+                       'unitxy': ('text', True),
                        'date': ('text', True),
                        'direction': ('keyword', True),
                        'sample': ('text', True),
