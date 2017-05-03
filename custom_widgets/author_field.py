@@ -32,13 +32,18 @@ class AuthorField(QButtonField):
         Returns:
 
         """
-        if 'name' in author_dict:
-            lbl = author_dict['name']
-            tooltip = 'user_id'
+        if type(author_dict) is dict:
+            if 'name' in author_dict:
+                lbl = author_dict['name']
+                tooltip = 'user_id'
 
-        elif 'id' in author_dict:
-            lbl = str(author_dict['id'])
-            tooltip = 'users_id'
+            elif 'id' in author_dict:
+                lbl = str(author_dict['id'])
+                tooltip = 'users_id'
+
+        elif type(author_dict) is str:
+            lbl = author_dict
+            tooltip = ''
 
         btn = QTagButton(lbl, self.tags, tooltip)
         self.tags.add(lbl)
