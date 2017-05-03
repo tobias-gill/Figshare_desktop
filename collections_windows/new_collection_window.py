@@ -11,6 +11,8 @@ from requests import HTTPError
 
 from Figshare_desktop.abstract_windows.new_object_window import NewObjectWindow
 from Figshare_desktop.custom_widgets.button_field import QButtonField
+from Figshare_desktop.custom_widgets.author_field import AuthorField
+from Figshare_desktop.custom_widgets.categories_field import CategoriesField
 from Figshare_desktop.formatting.formatting import (grid_label)
 from figshare_interface.figshare_structures.collections import Collections
 from figshare_interface.http_requests.figshare_requests import issue_request
@@ -43,9 +45,43 @@ class NewCollectionWindow(NewObjectWindow):
         lbl = QLabel(label)
         grid_label(self.app, lbl)
 
-        button_field = QButtonField()
+        button_field = QButtonField(self)
 
         return lbl, button_field
+
+    def create_author_field(self, label: str):
+        """
+        Creates a label button-field pair that is specifically formatted for author metadata.
+
+        Args:
+            label: Name of the field to be associated to the button-field widget
+
+        Returns:
+            lbl (QLabel): Label of the button field.
+            btn_field (QButtonField): Author formatted button field.
+        """
+        lbl = QLabel(label)
+        grid_label(self.app, lbl)
+
+        btn_field = AuthorField(self)
+        return lbl, btn_field
+
+    def create_categories_field(self, label: str):
+        """
+        Creats a label, button-field pair that is specifically formated for Figshare categories.
+
+        Args:
+            label: name of the field to be associated to te button-field widget.
+
+        Returns:
+            lbl (QLabel): Label of the button field.
+            btn_field (QButtonField): Categories button field.
+        """
+        lbl = QLabel(label)
+        grid_label(self.app, lbl)
+
+        btn_field = CategoriesField(self.parent.id_categories, self.parent.name_categories, parent=self)
+        return lbl, btn_field
 
     def create_object_info_layout(self):
         """
@@ -63,10 +99,10 @@ class NewCollectionWindow(NewObjectWindow):
         self.descr_field.setPlaceholderText('Enter meaningful collection description here.')
 
         # AUTHORS
-        auth_lbl, self.auth_field = self.create_button_field('Authors')
+        auth_lbl, self.auth_field = self.create_author_field('Authors')
 
         # CATEGORIES
-        cat_lbl, self.cat_field = self.create_button_field('Categories')
+        cat_lbl, self.cat_field = self.create_categories_field('Categories')
 
         # TAGS
         tag_lbl, self.tag_field = self.create_button_field('Tags')
@@ -129,36 +165,6 @@ class NewCollectionWindow(NewObjectWindow):
         tags = self.tag_field.get_tags()
         references = self.ref_field.get_tags()
 
-        # Format Author tags
-        formatted_authors = []
-        for auth in authors:
-            try:
-                auth_id = int(auth)
-                formatted_authors.append({'id': auth_id})
-            except:
-                formatted_authors.append({'name': auth})
-
-        # Get a dictionary of categories from Figshare with id and name pairs
-        allowed_cats = issue_request(method='GET', endpoint='categories', token=self.token)
-        cat_dict = {}
-        for cat in allowed_cats:
-            cat_dict[cat['id']] = cat['title']
-
-        # Format categories
-        formatted_categories = []
-
-        for cat in categories:
-            try:
-                cat_id = int(cat)
-                if cat_id in cat_dict:
-                    formatted_categories.append(cat_id)
-            except:
-                if cat in cat_dict.values():
-                    for id_n, value in cat_dict.items():
-                        if value == cat:
-                            formatted_categories.append(id_n)
-                            break
-
         # Format References
         formatted_references = []
         for ref in references:
@@ -170,10 +176,10 @@ class NewCollectionWindow(NewObjectWindow):
             'title': title,
             'description': description
         }
-        if formatted_authors != []:
-            creation_dict['authors'] = formatted_authors
-        if formatted_categories != []:
-            creation_dict['categories'] = formatted_categories
+        if authors != []:
+            creation_dict['authors'] = authors
+        if categories != []:
+            creation_dict['categories'] = categories
         if tags != []:
             creation_dict['tags'] = tags
         if references != []:
