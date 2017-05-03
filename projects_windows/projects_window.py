@@ -279,8 +279,9 @@ class ProjectsWindow(QMdiSubWindow):
         Called when return is pressed in the search bar.
         :return:
         """
-        self.project_list = self.search_projects(search_text, self.token)
-        self.search_init()
+        if search_text != '':
+            self.project_list = self.search_projects(search_text, self.token)
+            self.search_init()
 
     def search_on_clear(self, lineedit_text):
         """
