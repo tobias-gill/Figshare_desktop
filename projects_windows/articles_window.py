@@ -263,19 +263,20 @@ class ProjectsArticlesWindow(QMdiSubWindow):
             None
         """
 
-        # Get the list of article id numbers from the selected items in the article list widget
-        article_ids = list(self.article_list_widget.get_selection())
+        if len(self.article_list) > 0:
+            # Get the list of article id numbers from the selected items in the article list widget
+            article_ids = list(self.article_list_widget.get_selection())
+            if len(article_ids) > 0:
+                # Close the current project ariticles window and remove from the set of open windows
+                self.parent.open_windows.remove('project_articles_window')
+                self.parent.project_articles_window.close()
 
-        # Close the current project ariticles window and remove from the set of open windows
-        self.parent.open_windows.remove('project_articles_window')
-        self.parent.project_articles_window.close()
-
-        # Create and open the article edit window, adding it to the list of open windows
-        self.parent.open_windows.add('article_edit_window')
-        self.parent.article_edit_window = ArticleEditWindow(self.app, self.token, self.parent, self.project_id,
+                # Create and open the article edit window, adding it to the list of open windows
+                self.parent.open_windows.add('article_edit_window')
+                self.parent.article_edit_window = ArticleEditWindow(self.app, self.token, self.parent, self.project_id,
                                                             article_ids)
-        self.parent.mdi.addSubWindow(self.parent.article_edit_window)
-        self.parent.article_edit_window.show()
+                self.parent.mdi.addSubWindow(self.parent.article_edit_window)
+                self.parent.article_edit_window.show()
 
     def on_delete_article_pressed(self):
         """
