@@ -148,6 +148,8 @@ class NewProjectWindow(QMdiSubWindow):
         Creates a layout with label and edit fields for creating a new project.
         :return: QVBoxLayout with fields to create a new project
         """
+        # Create Layout
+        grid = QGridLayout()
 
         # Title
         title_lbl, self.title_field = self.create_lineedit('Title')
@@ -159,14 +161,13 @@ class NewProjectWindow(QMdiSubWindow):
 
         # Funding
         funding_lbl, self.funding_field = self.create_lineedit('Funding')
-        self.funding_field = QButtonField()
+        self.funding_field = QButtonField(self)
 
         # Group
         group_lbl, self.group_field = self.create_lineedit('Group ID')
         self.group_field.setText(str(self.get_group()))  # Auto fill with the users group id
 
-        # Create Layout
-        grid = QGridLayout()
+        # Add Widgets to layout
         grid.addWidget(title_lbl, 0, 0, Qt.AlignLeft)
         grid.addWidget(self.title_field, 0, 1)
 
