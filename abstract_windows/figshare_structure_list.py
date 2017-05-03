@@ -333,18 +333,18 @@ class FigshareObjectWindow(QMdiSubWindow):
             None
         """
         # Remove all existing button widgets
-        while self.project_buttons_box.count():
-            item = self.project_buttons_box.takeAt(0)
+        while self.object_buttons_box.count():
+            item = self.object_buttons_box.takeAt(0)
             item.widget().deleteLater()
 
         # Define how many buttons to visualise
-        if 1 <= len(self.project_list) <= 4:
-            number = len(self.project_list)
+        if 1 <= len(self.object_list) <= 4:
+            number = len(self.object_list)
         else:
             number = 4
 
-        self.s_bar.setMaximum(len(self.project_list) - number)  # Will be zero if less than 4 items in list
-        self.create_project_bar(0, number)  # Recreates the button view from the new position
+        self.s_bar.setMaximum(len(self.object_list) - number)  # Will be zero if less than 4 items in list
+        self.create_object_bar(0, number)  # Recreates the button view from the new position
 
     def search_on_return(self, search_text: str):
         """
