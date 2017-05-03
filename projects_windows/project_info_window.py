@@ -522,7 +522,8 @@ class ProjectInfoWindow(QMdiSubWindow):
         :return:
         """
         for i in range(2):
-            self.parent.projects_window.on_project_pressed(self.project_id)
+            self.parent.section_window.on_projects_btn_pressed()
+        self.parent.projects_window.on_project_pressed(self.project_id)
 
     #####
     # Figshare API Interface Actions
