@@ -109,16 +109,16 @@ class sectionWindow(QMdiSubWindow):
         self.localdata_btn = localdata_btn
 
         # Selection
-        selection_btn = QPushButton('Selection', self)
-        checkable_button(self.app, selection_btn)
+        #selection_btn = QPushButton('Selection', self)
+        #checkable_button(self.app, selection_btn)
 
-        self.selection_btn = selection_btn
+        #self.selection_btn = selection_btn
 
         # Add Buttons to Layout
         button_box.addWidget(projects_btn)
         button_box.addWidget(collections_btn)
         button_box.addWidget(localdata_btn)
-        button_box.addWidget(selection_btn)
+        #button_box.addWidget(selection_btn)
 
         return button_box
 

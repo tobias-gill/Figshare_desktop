@@ -342,7 +342,8 @@ class ArticleEditWindow(QMdiSubWindow):
         """
         lbl = self.create_label(label)
 
-        edit = QTextEdit(fill)
+        edit = QTextEdit()
+        edit.setPlainText(fill)
         grid_edit(self.app, edit)
 
         return lbl, edit
@@ -380,8 +381,9 @@ class ArticleEditWindow(QMdiSubWindow):
         lbl = self.create_label(label)
 
         auth_field = AuthorField(parent=self)
-        for auth_dict in fill_list:
-            auth_field.add_tag(auth_dict)
+        if fill_list is not None:
+            for auth_dict in fill_list:
+                auth_field.add_tag(auth_dict)
 
         return lbl, auth_field
 
@@ -400,8 +402,9 @@ class ArticleEditWindow(QMdiSubWindow):
         lbl = self.create_label(label)
 
         cat_field = CategoriesField(self.parent.id_categories, self.parent.name_categories, parent=self)
-        for cat in fill_list:
-            cat_field.add_tag(cat)
+        if fill_list is not None:
+            for cat in fill_list:
+                cat_field.add_tag(cat)
 
         return lbl, cat_field
 
@@ -535,12 +538,10 @@ class ArticleEditWindow(QMdiSubWindow):
         new_figshare_metadata['tags'] = tags
         # Categories
         cat_list = figshare_grid.itemAtPosition(4, 1).widget().get_tags()
-        categories = [int(i) for i in cat_list]
-        new_figshare_metadata['categories'] = categories
+        new_figshare_metadata['categories'] = cat_list
         # Authors
         auth_list = figshare_grid.itemAtPosition(5, 1).widget().get_tags()
-        authors = [{'id': int(i)} for i in auth_list]
-        new_figshare_metadata['authors'] = authors
+        new_figshare_metadata['authors'] = auth_list
         # Defined Type
         defined_type = figshare_grid.itemAtPosition(6, 1).widget().currentText()
         new_figshare_metadata['defined_type'] = defined_type
@@ -613,7 +614,7 @@ class ArticleEditWindow(QMdiSubWindow):
         # Check for changes
         update_dict = {}
         for key, value in new_file_metadata.items():
-            if value != 'None':
+            if value != 'None' and value is not None:
                 if value != old_file_metadata[key]:
                     update_dict[key] = value
 
@@ -629,6 +630,9 @@ class ArticleEditWindow(QMdiSubWindow):
 
             # Update local version of article
             article.update_info(update_dict)
+
+            # Change up_to_date
+            article.figshare_metadata['up_to_date'] = False
 
             return None
         except HTTPError as err:

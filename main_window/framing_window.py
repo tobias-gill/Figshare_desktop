@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
         self.collections_window = None
         self.new_collection_window = None
         self.collection_info_window = None
-        self.collection_aticles_window = None
+        self.collection_articles_window = None
 
         # Local Data Windows
         self.local_data_window = None

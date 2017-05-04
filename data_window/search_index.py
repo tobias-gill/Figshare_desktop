@@ -5,7 +5,7 @@
 import os
 from whoosh.fields import *
 from whoosh.index import create_in
-from whoosh.qparser import QueryParser
+from whoosh.qparser import QueryParser, MultifieldParser
 
 
 class ArticleIndex(object):
@@ -237,22 +237,43 @@ class ArticleIndex(object):
         :return: list. results
         """
         if field is '':
-            field = '*'
 
-        results_dict = {}
+            # Get All Schema fields
+            fields = self.get_fields(schema=schema)
 
-        with self.schemas[schema].searcher() as searcher:
-            last_page = False
-            while not last_page:
-                parser = QueryParser(field, self.schemas[schema].schema)
-                search_query = parser.parse(query)
-                results = searcher.search_page(search_query, page, pagelen)
+            results_dict = {}
 
-                if results.total > 0:
-                    for doc in range(results.pagelen):
-                        results_dict[results.docnum(doc)] = results.results.fields(doc)
+            with self.schemas[schema].searcher() as searcher:
+                last_page = False
+                while not last_page:
+                    parser = MultifieldParser(fields, self.schemas[schema].schema)
+                    search_query = parser.parse(query)
+                    results = searcher.search_page(search_query, page, pagelen)
 
-                last_page = results.is_last_page()
-                page += 1
+                    if results.total > 0:
+                        for doc in range(results.pagelen):
+                            results_dict[results.docnum(doc)] = results.results.fields(doc)
 
-        return results_dict
+                    last_page = results.is_last_page()
+                    page += 1
+
+            return results_dict
+
+        else:
+            results_dict = {}
+
+            with self.schemas[schema].searcher() as searcher:
+                last_page = False
+                while not last_page:
+                    parser = QueryParser(field, self.schemas[schema].schema)
+                    search_query = parser.parse(query)
+                    results = searcher.search_page(search_query, page, pagelen)
+
+                    if results.total > 0:
+                        for doc in range(results.pagelen):
+                            results_dict[results.docnum(doc)] = results.results.fields(doc)
+
+                    last_page = results.is_last_page()
+                    page += 1
+
+            return results_dict

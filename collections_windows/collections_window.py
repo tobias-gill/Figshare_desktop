@@ -41,6 +41,17 @@ class CollectionsWindow(FigshareObjectWindow):
         else:
             self.open_windows.remove('collections_window')
             self.close()
+
+            if 'collection_info_window' in self.open_windows:
+                self.open_windows.remove('collection_info_window')
+                self.parent.collection_info_window.close()
+            if 'collection_articles_window' in self.open_windows:
+                self.open_windows.remove('collection_articles_window')
+                self.parent.collection_articles_window.close()
+            if 'article_edit_window' in self.open_windows:
+                self.open_windows.remove('article_edit_window')
+                self.parent.article_edit_window.close()
+
             self.open_windows.add('new_collection_window')
             self.parent.new_collection_window = NewCollectionWindow(self.app, self.token, self.parent)
             self.parent.mdi.addSubWindow(self.parent.new_collection_window)

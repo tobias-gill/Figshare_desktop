@@ -46,7 +46,7 @@ class CollectionButton(QWidget):
         btn = QPushButton()
         btn.setIcon(QIcon(os.path.normpath(__file__ + '/../../img/Folder-48.png')))
         btn.setToolTip('Select Figshare Collection for upload')
-        btn.setToolTipDuration(1)
+        btn.setToolTipDuration(2500)
         press_button(self.app, btn)
 
         btn.pressed.connect(self.select_collection)

@@ -2,18 +2,15 @@
 
 """
 
-import os
-from PyQt5.QtWidgets import (QMdiSubWindow, QLabel, QPushButton, QMessageBox, QMainWindow, QTabWidget, QScrollArea,
-                             QWidget, QLineEdit, QHBoxLayout, QVBoxLayout, QSizePolicy, QScrollBar, QGridLayout)
-from PyQt5.QtGui import (QIcon, QFont, QPalette, QColor)
-from PyQt5.QtCore import (Qt, QObject)
+# PyQt Imports
+from PyQt5.QtWidgets import (QMdiSubWindow, QScrollArea,
+                             QWidget, QGridLayout)
 
-from figshare_interface.http_requests.figshare_requests import issue_request
-
+# Figshare Desktop Imports
 from Figshare_desktop.article_edit_window.article_edit_window import ArticleEditWindow
-from Figshare_desktop.figshare_articles.determine_type import gen_local_article
-from ..formatting.formatting import (press_button, scaling_ratio, checkable_button, search_bar)
 
+# Figshare API Imports
+from figshare_interface.http_requests.figshare_requests import issue_request
 
 __author__ = "Tobias Gill"
 __credits__ = ["Tobias Gill", "Adrian-Tudor Panescu", "Miriam Keshani"]
@@ -132,13 +129,8 @@ class LocalMetadataWindow(ArticleEditWindow):
         descr_lbl, descr_edit = self.create_textedit('Description', self.figshare_metadata['description'])
         ref_lbl, ref_field = self.create_buttonfield('References', self.figshare_metadata['references'])
         tags_lbl, tags_field = self.create_buttonfield('Tags', self.figshare_metadata['tags'])
-        categories_list = []
-        if self.figshare_metadata['categories'] is not None:
-            for cat in self.figshare_metadata['categories']:
-                if cat in self.cat_dict:
-                    categories_list.append(self.cat_dict[cat])
-        cat_lbl, cat_field = self.create_buttonfield('Categories', categories_list)
-        auth_lbl, auth_field = self.create_buttonfield('Authors', self.figshare_metadata['authors'])
+        cat_lbl, cat_field = self.create_categories_field('Categories', self.figshare_metadata['categories'])
+        auth_lbl, auth_field = self.create_author_field('Authors', self.figshare_metadata['authors'])
         def_lbl, def_combo = self.create_combo('Defined Type', self.defined_type_dict,
                                                self.figshare_metadata['defined_type'])
         fund_lbl, fund_field = self.create_buttonfield('Funding', self.figshare_metadata['funding'])
@@ -219,8 +211,8 @@ class LocalMetadataWindow(ArticleEditWindow):
         # Open the local articles window
         self.parent.section_window.open_data_articles_window()
         article_tree = self.parent.data_articles_window.article_tree
-        article_tree.articles_ids = set(self.parent.local_articles.keys())
-        article_tree.fill_tree(article_tree.tree_headers, article_tree.articles_ids)
+        article_tree.article_ids = set(self.parent.local_articles.keys())
+        article_tree.fill_tree(article_tree.tree_headers, article_tree.article_ids)
         article_tree.enable_fields()
         self.parent.data_articles_window.edit_btn.setEnabled(True)
 
@@ -255,22 +247,10 @@ class LocalMetadataWindow(ArticleEditWindow):
         new_figshare_metadata['tags'] = tags
         # Categories
         cat_list = figshare_grid.itemAtPosition(4, 1).widget().get_tags()
-        categories = []
-        for tag in cat_list:
-            try:
-                tag = int(tag)
-                if tag in self.cat_dict:
-                    categories.append(tag)
-            except:
-                for cat_id, cat_title in self.cat_dict.items():
-                    if cat_title == tag:
-                        categories.append(cat_id)
-                        break
-        new_figshare_metadata['categories'] = categories
+        new_figshare_metadata['categories'] = cat_list
         # Authors
         auth_list = figshare_grid.itemAtPosition(5, 1).widget().get_tags()
-        authors = [{'id': int(i)} for i in auth_list]
-        new_figshare_metadata['authors'] = authors
+        new_figshare_metadata['authors'] = auth_list
         # Defined Type
         defined_type = figshare_grid.itemAtPosition(6, 1).widget().currentText()
         new_figshare_metadata['defined_type'] = defined_type

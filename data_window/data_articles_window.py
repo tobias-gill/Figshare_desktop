@@ -209,7 +209,7 @@ class DataArticlesWindow(QMdiSubWindow):
 
         for article_id in selection_ids:
             # Remove article from the set of tree articles
-            self.article_tree.articles_ids.remove(article_id)
+            self.article_tree.article_ids.remove(article_id)
             # Remove article from the dictionary of local articles
             del(self.parent.local_articles[article_id])
 

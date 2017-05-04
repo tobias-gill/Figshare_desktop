@@ -37,7 +37,7 @@ class QTagButton(QPushButton):
         width = font_metric.width(str(label)) + 20
 
         if tooltip_lbl is not None:
-            self.setToolTip(tooltip_lbl)
+            self.setToolTip(str(tooltip_lbl))
             self.setToolTipDuration(1000)
 
         self.setMinimumWidth(width)

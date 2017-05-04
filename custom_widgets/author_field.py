@@ -33,13 +33,17 @@ class AuthorField(QButtonField):
 
         """
         if type(author_dict) is dict:
-            if 'name' in author_dict:
+            if 'full_name' in author_dict and 'id' in author_dict:
+                lbl = author_dict['full_name']
+                tooltip = author_dict['id']
+
+            elif 'full_name' in author_dict:
                 lbl = author_dict['name']
-                tooltip = 'user_id'
+                tooltip = ''
 
             elif 'id' in author_dict:
                 lbl = str(author_dict['id'])
-                tooltip = 'users_id'
+                tooltip = ''
 
         elif type(author_dict) is str:
             lbl = author_dict

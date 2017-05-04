@@ -331,9 +331,7 @@ class ArticleList(QWidget):
         dlg.setLayout(vbox)
 
         # Create an ordered set of field names
-        fields = OrderedSet()
-        for f in self.get_fields():
-            fields.add(f)
+        fields = self.figshare_article_index.get_fields('figshare_articles')
 
         # Define how many columns of check boxes to create
         columns = 3

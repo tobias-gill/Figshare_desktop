@@ -18,6 +18,7 @@ from Figshare_desktop.abstract_windows.object_info_window import ObjectInfoWindo
 from Figshare_desktop.collections_windows.collection_articles_window import CollectionsArticlesWindow
 from Figshare_desktop.custom_widgets.button_field import QButtonField
 from Figshare_desktop.custom_widgets.categories_field import CategoriesField
+from Figshare_desktop.custom_widgets.author_field import AuthorField
 
 # Figshare API imports
 from figshare_interface.figshare_structures.collections import Collections
@@ -153,11 +154,9 @@ class CollectionInfoWindow(ObjectInfoWindow):
         group_field = self.create_label(str(self.object_info['group_id']))
 
         # Authors Field
-        auth_field = QButtonField(scroll_area)
+        auth_field = AuthorField(parent=scroll_area)
         for auth_dict in self.object_info['authors']:
-            auth_name = auth_dict['full_name']
-            auth_id = str(auth_dict['id'])
-            auth_field.add_tag(auth_name, auth_id)
+            auth_field.add_tag(auth_dict)
         self.auth_field = auth_field
 
         # Categories Field
@@ -241,35 +240,7 @@ class CollectionInfoWindow(ObjectInfoWindow):
 
         # Check Authors
         current_authors = self.object_info['authors']
-        author_tags = self.auth_field.get_tags()
-        new_authors = []
-        for tag in author_tags:
-
-            # Attempt to convert the tag into an integer
-            try:
-                tag = int(tag)
-                new_auth = True
-                # Check to see if author ID is already in list
-                for auth in current_authors:
-                    if auth['id'] == tag:
-                        new_auth = False
-                        break
-
-                # If a new author add it to the update list
-                if new_auth:
-                    new_authors.append({'id': tag})
-            except:
-                new_auth = True
-
-                # Check to see if the author name is already in the list
-                for auth in current_authors:
-                    if auth['full_name'] == tag:
-                        new_auth = False
-                        break
-
-                # If a new author add it to the update list
-                if new_auth:
-                    new_authors.append({'name': tag})
+        new_authors = self.auth_field.get_tags()
 
         if new_authors != []:
             update_dict['authors'] = new_authors

@@ -34,7 +34,7 @@ class LocalArticleList(ArticleList):
         self.token = OAuth_token
         self.parent = parent
 
-        self.articles_ids = set()
+        self.article_ids = set()
 
         self.initUI()
 
@@ -62,28 +62,6 @@ class LocalArticleList(ArticleList):
         self.tree = tree
         self.tree_headers = headers
 
-    def search_field(self):
-        """
-        Creates a QComboBox with the different search fields to choose from
-        :return: QComboBox
-        """
-
-        combo = QComboBox()
-        combo.setMaximumWidth(self.geometry().width() / 4)
-        search_combo(self.app, combo)
-        combo.setToolTip('Set search field parameter. Leave blank for general search.')
-        combo.setToolTipDuration(1000)
-
-        self.search_field_combo = combo
-
-        # Initialise the combobox fields
-        self.update_search_field()
-
-        self.search_field_combo.setEnabled(False)
-
-        return self.search_field_combo
-
-
     #####
     # Widget Actions
     #####
@@ -91,54 +69,35 @@ class LocalArticleList(ArticleList):
     @pyqtSlot(bool)
     def update_search_field(self):
         """
-        Updates the items in the search field combobox
-        :return:
+        Updates the items in the search field combobox.
+
+        Returns:
+            None
         """
+        # Clear combo and add empty first item
         self.search_field_combo.clear()
         self.search_field_combo.addItem('')
-        self.search_field_combo.addItems(self.parent.local_article_index.get_fields(schema='local_articles'))
+
+        # Get list of fields in local article search index
+        fields = self.parent.local_article_index.get_fields(schema='local_articles')
+        self.search_field_combo.addItems(fields)
 
     @pyqtSlot(str)
-    def add_to_tree(self, local_article_id: str):
+    def add_to_tree(self, local_article_id: str, headers: list=None):
         """
         Attempts to parse and
         :param local_article_id:
         :return:
         """
-        if local_article_id not in self.articles_ids:
-            self.articles_ids.add(local_article_id)
-            local_article = self.parent.local_articles[local_article_id]
-            local_article.gen_qtree_item(self.tree_headers, local_article.input_dicts())
-            self.tree.addTopLevelItem(local_article.qtreeitem)
+        if headers is None:
+            headers = self.tree_headers
 
-            for column in range(self.tree.columnCount()):
-                self.tree.resizeColumnToContents(column)
+        local_article = self.parent.local_articles[local_article_id]
+        local_article.gen_qtree_item(self.tree_headers, local_article.input_dicts())
+        self.tree.addTopLevelItem(local_article.qtreeitem)
 
-    def update_headers(self, headers):
-        """
-        Called to update the column headers in the QTree
-        :param headers: list of strings. in Order for the different column headers
-        :return:
-        """
-        header_item = QTreeWidgetItem(headers)
-        self.tree.setHeaderItem(header_item)
-        self.tree.clear()
-        self.fill_tree(headers, self.articles_ids)
-        # Adjust the size of the columns to the contents
         for column in range(self.tree.columnCount()):
             self.tree.resizeColumnToContents(column)
-
-    def fill_tree(self, headers, article_ids):
-        """
-        Called to fill the QTree
-        :param headers:
-        :return:
-        """
-        self.tree.clear()
-        for article_id in article_ids:
-            local_article = self.parent.local_articles[article_id]
-            local_article.gen_qtree_item(headers, local_article.input_dicts())
-            self.tree.addTopLevelItem(local_article.qtreeitem)
 
     def search_on_return(self):
         """
@@ -148,22 +107,28 @@ class LocalArticleList(ArticleList):
         field = self.search_field_combo.currentText()
         query = self.search_edit.text()
 
-        local_article_index = self.parent.local_article_index
-        results = local_article_index.perform_search(schema='local_articles', field=field, query=query)
+        if query == '':
+            self.search_on_clear()
 
-        self.result_ids = set()
-        for docnum, val_dict in results.items():
-            if 'id' in val_dict:
-                self.result_ids.add(val_dict['id'])
-        self.fill_tree(self.tree_headers, self.result_ids)
-        self.parent.data_articles_window.check_edit()
+        else:
+            local_article_index = self.parent.local_article_index
+            results = local_article_index.perform_search(schema='local_articles', field=field, query=query)
+
+            self.result_ids = set()
+
+            for docnum, val_dict in results.items():
+                if 'id' in val_dict:
+                    self.result_ids.add(val_dict['id'])
+
+            self.fill_tree(self.tree_headers, self.result_ids)
+            self.parent.data_articles_window.check_edit()
 
     def search_on_clear(self):
         """
         Called when the clear button is pressed within the search bar
         :return:
         """
-        self.fill_tree(self.tree_headers, self.articles_ids)
+        self.fill_tree(self.tree_headers, self.article_ids)
         self.parent.data_articles_window.check_edit()
 
     def on_headers_set_pressed(self):
@@ -256,47 +221,14 @@ class LocalArticleList(ArticleList):
 
         return article_ids
 
+    def add_to_articles(self, article_id):
+        """
+        Convenience function to add an article id to the artiles_ids set.
 
-class OrderedSet(collections.OrderedDict, collections.MutableSet):
+        Args:
+            article_id: local article id number.
 
-    def update(self, *args, **kwargs):
-        if kwargs:
-            raise TypeError("update() takes no keyword arguments")
-
-        for s in args:
-            for e in s:
-                 self.add(e)
-
-    def add(self, elem):
-        self[elem] = None
-
-    def discard(self, elem):
-        self.pop(elem, None)
-
-    def __le__(self, other):
-        return all(e in other for e in self)
-
-    def __lt__(self, other):
-        return self <= other and self != other
-
-    def __ge__(self, other):
-        return all(e in self for e in other)
-
-    def __gt__(self, other):
-        return self >= other and self != other
-
-    def __repr__(self):
-        return 'OrderedSet([%s])' % (', '.join(map(repr, self.keys())))
-
-    def __str__(self):
-        return '{%s}' % (', '.join(map(repr, self.keys())))
-
-    difference = property(lambda self: self.__sub__)
-    difference_update = property(lambda self: self.__isub__)
-    intersection = property(lambda self: self.__and__)
-    intersection_update = property(lambda self: self.__iand__)
-    issubset = property(lambda self: self.__le__)
-    issuperset = property(lambda self: self.__ge__)
-    symmetric_difference = property(lambda self: self.__xor__)
-    symmetric_difference_update = property(lambda self: self.__ixor__)
-    union = property(lambda self: self.__or__)
+        Returns:
+            None
+        """
+        self.article_ids.add(article_id)

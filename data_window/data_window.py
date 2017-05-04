@@ -180,6 +180,7 @@ class DataWindow(QMdiSubWindow):
 
         # Connect signals from worker
         worker.sig_step.connect(article_tree.add_to_tree)
+        worker.sig_step.connect(lambda article_id: article_tree.add_to_articles(article_id))
         worker.sig_done.connect(article_tree.enable_fields)
         worker.sig_done.connect(article_tree.update_search_field)
         worker.sig_done.connect(self.parent.data_articles_window.check_edit)
@@ -317,6 +318,7 @@ class ArticleCreationWorker(QObject):
 
             # Add document to Index
             local_article_index.addDocument(schema='local_articles', data_dict=document_dict)
+
 
             return local_id
 
